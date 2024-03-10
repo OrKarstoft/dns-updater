@@ -13,6 +13,10 @@ import (
 
 func main() {
 	doToken := os.Getenv("DO_TOKEN")
+	if doToken == "" {
+		log.Fatal("DO_TOKEN is not set")
+	}
+
 	client := godo.NewFromToken(doToken)
 
 	ctx := context.TODO()
