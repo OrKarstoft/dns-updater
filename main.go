@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -12,9 +13,26 @@ import (
 )
 
 func main() {
-	doToken := os.Getenv("DO_TOKEN")
-	if doToken == "" {
-		log.Fatal("DO_TOKEN is not set")
+	readFromFileFlag := flag.String("from-file", "", "Specify a filepath to read the digital ocean token from.")
+	flag.Parse()
+
+	var doToken string
+	if *readFromFileFlag == "" {
+		doToken = os.Getenv("DO_TOKEN")
+		if doToken == "" {
+			log.Fatal("DO_TOKEN is not set")
+		}
+	} else {
+		file, err := os.ReadFile(*readFromFileFlag)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		doToken = string(file)
+
+		if doToken == "" {
+			log.Fatal("Could not load token from file")
+		}
 	}
 
 	client := godo.NewFromToken(doToken)
