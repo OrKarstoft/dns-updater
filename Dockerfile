@@ -19,7 +19,7 @@ RUN adduser \
   dnsupdater
 
 COPY . .
-RUN go build -buildvcs=false -tags netgo -trimpath -tags netgo -ldflags="-w -s" -o ./dnsupdater .
+RUN go build -buildvcs=false -tags netgo -trimpath -tags netgo -ldflags="-w -s" -o ./dnsupdater cmd/main.go
 
 RUN upx --best --lzma dnsupdater
 
