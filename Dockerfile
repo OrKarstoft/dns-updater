@@ -1,4 +1,4 @@
-FROM golang:1.22.1-alpine AS builder
+FROM golang:1.23.1-alpine AS builder
 
 ARG UPX_VERSION=4.2.1-r0
 
@@ -19,7 +19,7 @@ RUN adduser \
   dnsupdater
 
 COPY . .
-RUN go build -buildvcs=false -tags netgo -trimpath -tags netgo -ldflags="-w -s" -o ./dnsupdater .
+RUN go build -buildvcs=false -tags netgo -trimpath -tags netgo -ldflags="-w -s" -o ./dnsupdater cmd/main.go
 
 RUN upx --best --lzma dnsupdater
 
