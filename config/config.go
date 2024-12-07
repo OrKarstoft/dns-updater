@@ -29,7 +29,7 @@ func LoadConfig() {
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath(".")
-	viper.AddConfigPath("/run/secrets/config")
+	viper.AddConfigPath("/run/secrets/")
 
 	err := viper.ReadInConfig()
 	if err != nil {
