@@ -1,0 +1,19 @@
+services:
+  dns-updater:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      platforms:
+        - linux/amd64
+        - linux/arm64
+    configs:
+      - config
+    secrets:
+      - gcp_service_account
+
+secrets:
+  gcp_service_account:
+    file: serviceaccount.json
+configs:
+  config:
+    file: config.yaml
