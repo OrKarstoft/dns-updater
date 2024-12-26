@@ -26,7 +26,7 @@ func NewService(apiToken string) dns.DNSImpl {
 	return &Service{ctx: ctx, client: client}
 }
 
-func (s *Service) SetRecord(req *domain.DNSRequest) {
+func (s *Service) UpdateRecord(req *domain.DNSRequest) {
 	records, _, err := s.client.Domains.Records(s.ctx, req.GetDomain(), &godo.ListOptions{WithProjects: true})
 	if err != nil {
 		log.Fatal(err)

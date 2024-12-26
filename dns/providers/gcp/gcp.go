@@ -26,7 +26,7 @@ func NewService() dns.DNSImpl {
 	return &Service{ctx: ctx, client: client}
 }
 
-func (s *Service) SetRecord(req *domain.DNSRequest) {
+func (s *Service) UpdateRecord(req *domain.DNSRequest) {
 	fullRecordName := fmt.Sprintf("%s.%s.", req.GetRecordName(), req.GetDomain())
 
 	// List existing records in the zone
