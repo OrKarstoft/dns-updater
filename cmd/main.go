@@ -14,12 +14,12 @@ import (
 func main() {
 	config.LoadConfig()
 
-	var svc dns.DNSImpl
+	var dnsService dns.DNSImpl
 	// TODO: Handle multiple DNS providers better than this
 	if config.Conf.DOToken != "" {
-		svc = digitalocean.NewService(config.Conf.DOToken)
+		dnsService = digitalocean.NewService(config.Conf.DOToken)
 	} else if config.Conf.GCP != (config.GCP{}) {
-		svc = gcp.NewService()
+		dnsService = gcp.NewService()
 	} else {
 		log.Fatal("No valid DNS provider found")
 	}
@@ -32,7 +32,7 @@ func main() {
 				log.Fatalf("Invalid DNS request: %+v", dnsReq)
 			}
 
-			svc.SetRecord(dnsReq)
+			dnsService.UpdateRecord(dnsReq)
 		}
 	}
 }
