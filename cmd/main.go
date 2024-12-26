@@ -6,8 +6,8 @@ import (
 	domain "github.com/orkarstoft/dns-updater"
 	"github.com/orkarstoft/dns-updater/config"
 	"github.com/orkarstoft/dns-updater/dns"
-	"github.com/orkarstoft/dns-updater/dns/digitalocean"
-	"github.com/orkarstoft/dns-updater/dns/gcp"
+	"github.com/orkarstoft/dns-updater/dns/providers/digitalocean"
+	"github.com/orkarstoft/dns-updater/dns/providers/gcp"
 	"github.com/orkarstoft/dns-updater/ip"
 )
 
