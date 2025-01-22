@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-func GetIP() string {
+func Get() string {
 	req, err := http.NewRequest("GET", "https://myip.dk", nil)
 	if err != nil {
 		log.Fatal(err)

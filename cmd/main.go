@@ -1,38 +1,37 @@
 package main
 
 import (
+	"context"
 	"log"
 
-	domain "github.com/orkarstoft/dns-updater"
+	"github.com/orkarstoft/dns-updater/application"
 	"github.com/orkarstoft/dns-updater/config"
 	"github.com/orkarstoft/dns-updater/dns"
 	"github.com/orkarstoft/dns-updater/dns/providers/digitalocean"
 	"github.com/orkarstoft/dns-updater/dns/providers/gcp"
-	"github.com/orkarstoft/dns-updater/ip"
 )
 
 func main() {
 	config.LoadConfig()
 
-	var dnsService dns.DNSImpl
-	// TODO: Handle multiple DNS providers better than this
-	if config.Conf.DOToken != "" {
-		dnsService = digitalocean.NewService(config.Conf.DOToken)
-	} else if config.Conf.GCP != (config.GCP{}) {
-		dnsService = gcp.NewService()
-	} else {
-		log.Fatal("No valid DNS provider found")
+	var dnsProvider dns.DNSImpl
+	switch config.Conf.Provider.Name {
+	case "googlecloudplatform":
+		dnsProvider = gcp.NewService()
+	case "digitalocean":
+		dnsProvider = digitalocean.NewService(config.Conf.GetProviderString("token"))
+	default:
+		log.Fatal("No vaild DNS provider specified")
 	}
-	ip := ip.GetIP()
 
-	for _, update := range config.Conf.Updates {
-		for _, record := range update.Records {
-			dnsReq := domain.NewDNSRequest(record, update.Domain, update.Zone, ip, update.Type)
-			if dnsReq == nil {
-				log.Fatalf("Invalid DNS request: %+v", dnsReq)
-			}
-
-			dnsService.UpdateRecord(dnsReq)
-		}
+	options := application.Options{
+		Ctx:            context.Background(),
+		ProviderClient: dnsProvider,
 	}
+
+	}
+
+	service := application.New(options)
+
+	service.Run()
 }

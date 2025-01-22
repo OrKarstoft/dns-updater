@@ -19,7 +19,7 @@ type Service struct {
 
 func NewService() dns.DNSImpl {
 	ctx := context.TODO()
-	client, err := googledns.NewService(ctx, option.WithCredentialsFile(config.Conf.GCP.CredentialsFilePath))
+	client, err := googledns.NewService(ctx, option.WithCredentialsFile(config.Conf.GetProviderString("CredentialsFilePath")))
 	if err != nil {
 		log.Fatalf("Failed to create DNS client: %v", err)
 	}
@@ -30,7 +30,7 @@ func (s *Service) UpdateRecord(req *domain.DNSRequest) {
 	fullRecordName := fmt.Sprintf("%s.%s.", req.GetRecordName(), req.GetDomain())
 
 	// List existing records in the zone
-	recordSets, err := s.client.ResourceRecordSets.List(config.Conf.GCP.ProjectId, req.GetZone()).Do()
+	recordSets, err := s.client.ResourceRecordSets.List(config.Conf.GetProviderString("ProjectId"), req.GetZone()).Do()
 	if err != nil {
 		log.Fatalf("Failed to list resource record sets: %v", err)
 	}
@@ -65,7 +65,7 @@ func (s *Service) UpdateRecord(req *domain.DNSRequest) {
 		Deletions: []*googledns.ResourceRecordSet{recordToUpdate},
 	}
 
-	_, err = s.client.Changes.Create(config.Conf.GCP.ProjectId, req.GetZone(), change).Do()
+	_, err = s.client.Changes.Create(config.Conf.GetProviderString("ProjectId"), req.GetZone(), change).Do()
 	if err != nil {
 		log.Fatalf("Failed to create change: %v", err)
 	}
