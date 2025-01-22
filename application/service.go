@@ -13,11 +13,13 @@ import (
 type Service struct {
 	ctx            context.Context
 	providerClient dns.DNSImpl
+	tracer         interface{}
 }
 
 type Options struct {
 	Ctx            context.Context
 	ProviderClient dns.DNSImpl
+	Tracer         interface{}
 }
 
 func New(opts Options) *Service {

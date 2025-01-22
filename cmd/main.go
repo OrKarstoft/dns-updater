@@ -14,6 +14,23 @@ import (
 func main() {
 	config.LoadConfig()
 
+	dnsProvider := getDNSProvider()
+
+	options := application.Options{
+		Ctx:            context.Background(),
+		ProviderClient: dnsProvider,
+	}
+
+	if config.Conf.TracingEnabled {
+		options.Tracer = nil
+	}
+
+	service := application.New(options)
+
+	service.Run()
+}
+
+func getDNSProvider() dns.DNSImpl {
 	var dnsProvider dns.DNSImpl
 	switch config.Conf.Provider.Name {
 	case "googlecloudplatform":
@@ -23,15 +40,5 @@ func main() {
 	default:
 		log.Fatal("No vaild DNS provider specified")
 	}
-
-	options := application.Options{
-		Ctx:            context.Background(),
-		ProviderClient: dnsProvider,
-	}
-
-	}
-
-	service := application.New(options)
-
-	service.Run()
+	return dnsProvider
 }
