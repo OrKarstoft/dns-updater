@@ -3,24 +3,20 @@ package tracing
 import (
 	"context"
 	"log"
-	"os"
-	"os/signal"
 
+	domain "github.com/orkarstoft/dns-updater"
+	"github.com/orkarstoft/dns-updater/dns"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/trace"
 )
 
 type Service struct {
-	ctx            context.Context
 	tracer         trace.Tracer
-	shutdownTracer func(context.Context) error
+	providerClient dns.DNSImpl
 }
 
-func NewService(ctx context.Context) (*Service, func(context.Context) error) {
-	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
-	defer cancel()
-
+func NewService(ctx context.Context, providerClient dns.DNSImpl) (*Service, func(context.Context) error) {
 	conn, err := initConn()
 	if err != nil {
 		log.Fatal(err)
@@ -53,14 +49,18 @@ func NewService(ctx context.Context) (*Service, func(context.Context) error) {
 	// }
 
 	return &Service{
-		ctx:    ctx,
-		tracer: tracer,
+		tracer:         tracer,
+		providerClient: providerClient,
 	}, shutdownTracerProvider
 }
 
-// func (s *ServiceWithTracing) UpdateRecord(req *domain.DNSRequest) {
-// 	_, span := s.tracer.Start(s.ctx, "UpdateRecord")
-// 	defer span.End()
-//
-// 	s.service.UpdateRecord(req)
-// }
+func (s *Service) Tracer() trace.Tracer {
+	return s.tracer
+}
+
+func (s *Service) UpdateRecord(ctx context.Context, req *domain.DNSRequest) error {
+	newCtx, span := s.tracer.Start(ctx, "Updating Record")
+	defer span.End()
+	err := s.providerClient.UpdateRecord(newCtx, req)
+	return err
+}

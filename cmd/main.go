@@ -3,26 +3,40 @@ package main
 import (
 	"context"
 	"log"
+	"os"
+	"os/signal"
 
 	"github.com/orkarstoft/dns-updater/application"
 	"github.com/orkarstoft/dns-updater/config"
 	"github.com/orkarstoft/dns-updater/dns"
 	"github.com/orkarstoft/dns-updater/dns/providers/digitalocean"
 	"github.com/orkarstoft/dns-updater/dns/providers/gcp"
+	"github.com/orkarstoft/dns-updater/dns/tracing"
 )
 
 func main() {
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer cancel()
+
 	config.LoadConfig()
 
 	dnsProvider := getDNSProvider()
 
 	options := application.Options{
-		Ctx:            context.Background(),
+		Ctx:            ctx,
 		ProviderClient: dnsProvider,
 	}
 
 	if config.Conf.TracingEnabled {
-		options.Tracer = nil
+		tracingService, shutdownTracer := tracing.NewService(ctx, dnsProvider)
+		defer shutdownTracer(ctx)
+
+		traceCtx, span := tracingService.Tracer().Start(ctx, "root")
+		defer span.End()
+
+		options.Ctx = traceCtx
+		options.Tracer = tracingService.Tracer()
+		options.ProviderClient = tracingService
 	}
 
 	service := application.New(options)
