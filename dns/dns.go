@@ -1,9 +1,11 @@
 package dns
 
 import (
+	"context"
+
 	domain "github.com/orkarstoft/dns-updater"
 )
 
 type DNSImpl interface {
-	UpdateRecord(*domain.DNSRequest)
+	UpdateRecord(context.Context, *domain.DNSRequest) error
 }
