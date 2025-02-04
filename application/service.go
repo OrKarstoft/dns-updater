@@ -68,15 +68,16 @@ func (s *Service) Run() {
 
 // processRecord handles creating the DNS request and updating the record.
 func (s *Service) processRecord(record string, update config.Update, actualIP string) error {
-	ctx, span := s.startSpan("Creating DNS Request")
-	defer s.endSpan(span)
+	_, span := s.startSpan("Creating DNS Request")
 
 	dnsReq := domain.NewDNSRequest(record, update.Domain, update.Zone, actualIP, update.Type)
 	if dnsReq == nil {
 		return fmt.Errorf("invalid DNS request: %+v", dnsReq)
 	}
 
-	return s.providerClient.UpdateRecord(ctx, dnsReq)
+	s.endSpan(span)
+
+	return s.providerClient.UpdateRecord(s.ctx, dnsReq)
 }
 
 // startSpan safely starts a tracing span if the tracer is available.
