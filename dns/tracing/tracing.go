@@ -37,16 +37,7 @@ func NewService(ctx context.Context, providerClient dns.DNSImpl) (*Service, func
 		log.Fatal(err)
 	}
 
-	name := "dns-updater"
-	tracer := otel.Tracer(name)
-
-	// Attributes represent additional key-value descriptors that can be bound
-	// to a metric observer or recorder.
-	// commonAttrs := []attribute.KeyValue{
-	// 	attribute.String("attrA", "chocolate"),
-	// 	attribute.String("attrB", "raspberry"),
-	// 	attribute.String("attrC", "vanilla"),
-	// }
+	tracer := otel.Tracer("dns-updater")
 
 	return &Service{
 		tracer:         tracer,

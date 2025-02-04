@@ -27,7 +27,7 @@ func main() {
 		ProviderClient: dnsProvider,
 	}
 
-	if config.Conf.TracingEnabled {
+	if config.Conf.Tracing.Enabled {
 		tracingService, shutdownTracer := tracing.NewService(ctx, dnsProvider)
 		defer shutdownTracer(ctx)
 

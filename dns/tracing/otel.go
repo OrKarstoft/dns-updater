@@ -7,42 +7,44 @@ package tracing
 import (
 	"context"
 	"fmt"
-	"log"
-	"os"
-	"os/signal"
-	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
+	"github.com/orkarstoft/dns-updater/config"
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
-	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/propagation"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
-	"go.opentelemetry.io/otel/trace"
 )
 
-var serviceName = semconv.ServiceNameKey.String("test-service")
+var serviceName = semconv.ServiceNameKey.String("dns-updater")
 
 // Initialize a gRPC connection to be used by both the tracer and meter
 // providers.
 func initConn() (*grpc.ClientConn, error) {
 	// It connects the OpenTelemetry Collector through local gRPC connection.
-	// You may replace `localhost:4317` with your endpoint.
-	conn, err := grpc.NewClient("localhost:4317",
-		// Note the use of insecure transport here. TLS is recommended in production.
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create gRPC connection to collector: %w", err)
-	}
+	tracingTarget := fmt.Sprintf("%s:%d", config.Conf.Tracing.Host, config.Conf.Tracing.Port)
 
+	var conn *grpc.ClientConn
+	var err error
+	if config.Conf.Tracing.AllowInsecure {
+		conn, err = grpc.NewClient(tracingTarget,
+			grpc.WithTransportCredentials(insecure.NewCredentials()),
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create insecure gRPC connection to collector: %w", err)
+		}
+	} else {
+		conn, err = grpc.NewClient(tracingTarget)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create gRPC connection to collector: %w", err)
+		}
+	}
 	return conn, err
 }
 
@@ -85,80 +87,4 @@ func initMeterProvider(ctx context.Context, res *resource.Resource, conn *grpc.C
 	otel.SetMeterProvider(meterProvider)
 
 	return meterProvider.Shutdown, nil
-}
-
-func main() {
-	log.Printf("Waiting for connection...")
-
-	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
-	defer cancel()
-
-	conn, err := initConn()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	res, err := resource.New(ctx,
-		resource.WithAttributes(
-			// The service name used to display traces in backends
-			serviceName,
-		),
-	)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	shutdownTracerProvider, err := initTracerProvider(ctx, res, conn)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer func() {
-		if err := shutdownTracerProvider(ctx); err != nil {
-			log.Fatalf("failed to shutdown TracerProvider: %s", err)
-		}
-	}()
-
-	shutdownMeterProvider, err := initMeterProvider(ctx, res, conn)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer func() {
-		if err := shutdownMeterProvider(ctx); err != nil {
-			log.Fatalf("failed to shutdown MeterProvider: %s", err)
-		}
-	}()
-
-	name := "go.opentelemetry.io/contrib/examples/otel-collector"
-	tracer := otel.Tracer(name)
-	meter := otel.Meter(name)
-
-	// Attributes represent additional key-value descriptors that can be bound
-	// to a metric observer or recorder.
-	commonAttrs := []attribute.KeyValue{
-		attribute.String("attrA", "chocolate"),
-		attribute.String("attrB", "raspberry"),
-		attribute.String("attrC", "vanilla"),
-	}
-
-	runCount, err := meter.Int64Counter("run", metric.WithDescription("The number of times the iteration ran"))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// Work begins
-	ctx, span := tracer.Start(
-		ctx,
-		"CollectorExporter-Example",
-		trace.WithAttributes(commonAttrs...))
-	defer span.End()
-	for i := 0; i < 10; i++ {
-		_, iSpan := tracer.Start(ctx, fmt.Sprintf("Sample-%d", i))
-		runCount.Add(ctx, 1, metric.WithAttributes(commonAttrs...))
-		log.Printf("Doing really hard work (%d / 10)\n", i+1)
-
-		<-time.After(time.Second)
-		iSpan.End()
-	}
-
-	log.Printf("Done!")
 }

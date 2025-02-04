@@ -9,9 +9,9 @@ import (
 )
 
 type Config struct {
-	Provider       Provider `mapstructure:"provider"`
-	Updates        []Update `mapstructure:"updates"`
-	TracingEnabled bool     `mapstructure:"tracingEnabled"`
+	Provider Provider `mapstructure:"provider"`
+	Updates  []Update `mapstructure:"updates"`
+	Tracing  Tracing  `mapstructure:"tracing"`
 }
 
 type Provider struct {
@@ -19,16 +19,18 @@ type Provider struct {
 	Config map[string]interface{} `mapstructure:"config"`
 }
 
-// type GCP struct {
-// 	CredentialsFilePath string `mapstructure:"credentialsFile"`
-// 	ProjectId           string `mapstructure:"projectId"`
-// }
-
 type Update struct {
 	Domain  string
 	Zone    string
 	Records []string
 	Type    string
+}
+
+type Tracing struct {
+	Enabled       bool   `mapstructure:"enabled"`
+	Host          string `mapstructure:"host"`
+	Port          int    `mapstructure:"port"`
+	AllowInsecure bool   `mapstructure:"AllowInsecure"`
 }
 
 var Conf Config
