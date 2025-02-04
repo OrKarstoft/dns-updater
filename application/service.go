@@ -51,14 +51,7 @@ func (s *Service) Run() {
 	var errs []error
 	for _, update := range config.Conf.Updates {
 		for _, record := range update.Records {
-			_, span := s.tracer.Start(s.ctx, "Creating DNS Request")
-			dnsReq := domain.NewDNSRequest(record, update.Domain, update.Zone, actualIP, update.Type)
-			if dnsReq == nil {
-				log.Fatalf("Invalid DNS request: %+v", dnsReq)
-			}
-			span.End()
-			err := s.providerClient.UpdateRecord(s.ctx, dnsReq)
-			if err != nil {
+			if err := s.processRecord(record, update, actualIP); err != nil {
 				errs = append(errs, err)
 			}
 		}
@@ -70,5 +63,33 @@ func (s *Service) Run() {
 		}
 	} else {
 		log.Println("All records updated successfully")
+	}
+}
+
+// processRecord handles creating the DNS request and updating the record.
+func (s *Service) processRecord(record string, update config.Update, actualIP string) error {
+	ctx, span := s.startSpan("Creating DNS Request")
+	defer s.endSpan(span)
+
+	dnsReq := domain.NewDNSRequest(record, update.Domain, update.Zone, actualIP, update.Type)
+	if dnsReq == nil {
+		return fmt.Errorf("invalid DNS request: %+v", dnsReq)
+	}
+
+	return s.providerClient.UpdateRecord(ctx, dnsReq)
+}
+
+// startSpan safely starts a tracing span if the tracer is available.
+func (s *Service) startSpan(name string) (context.Context, trace.Span) {
+	if s.tracer != nil {
+		return s.tracer.Start(s.ctx, name)
+	}
+	return s.ctx, nil
+}
+
+// endSpan safely ends a span if it exists.
+func (s *Service) endSpan(span trace.Span) {
+	if span != nil {
+		span.End()
 	}
 }
