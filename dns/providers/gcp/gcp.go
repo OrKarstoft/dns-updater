@@ -33,7 +33,7 @@ func (s *Service) UpdateRecord(ctx context.Context, req *domain.DNSRequest) erro
 
 	records, err := s.listRecords(projectID, req.GetZone())
 	if err != nil {
-		return fmt.Errorf("failed to list resource record sets: %w", err)
+		return err
 	}
 
 	recordToUpdate := findMatchingRecord(records, fullRecordName, req.GetRecordType())
@@ -47,7 +47,7 @@ func (s *Service) UpdateRecord(ctx context.Context, req *domain.DNSRequest) erro
 	}
 
 	if err := s.updateDNSRecord(projectID, req.GetZone(), recordToUpdate, req); err != nil {
-		return fmt.Errorf("failed to create change: %w", err)
+		return err
 	}
 
 	fmt.Println("[DEBUG] Change applied successfully")
@@ -57,7 +57,11 @@ func (s *Service) UpdateRecord(ctx context.Context, req *domain.DNSRequest) erro
 func (s *Service) listRecords(projectID, zone string) ([]*googledns.ResourceRecordSet, error) {
 	resp, err := s.client.ResourceRecordSets.List(projectID, zone).Do()
 	if err != nil {
-		return nil, err
+		return nil, &dns.DNSProviderError{
+			Provider:  "GoogleCloudPlatform",
+			Operation: "list records",
+			Err:       err,
+		}
 	}
 	return resp.Rrsets, nil
 }
@@ -85,5 +89,12 @@ func (s *Service) updateDNSRecord(projectID, zone string, oldRecord *googledns.R
 	}
 
 	_, err := s.client.Changes.Create(projectID, zone, change).Do()
-	return err
+	if err != nil {
+		return &dns.DNSProviderError{
+			Provider:  "DigitalOcean",
+			Operation: "record update",
+			Err:       err,
+		}
+	}
+	return nil
 }

@@ -29,7 +29,7 @@ func NewService(apiToken string) dns.DNSImpl {
 func (s *Service) UpdateRecord(ctx context.Context, req *domain.DNSRequest) error {
 	records, err := s.getRecords(ctx, req)
 	if err != nil {
-		return fmt.Errorf("Failed to list domain records: %w", err)
+		return err
 	}
 
 	record := findMatchingRecord(records, req)
@@ -43,7 +43,7 @@ func (s *Service) UpdateRecord(ctx context.Context, req *domain.DNSRequest) erro
 	}
 
 	if err := s.updateDNSRecord(ctx, req, record.ID); err != nil {
-		return fmt.Errorf("Failed to update record: %w", err)
+		return err
 	}
 
 	fmt.Println("[DEBUG] Record updated")
@@ -53,7 +53,11 @@ func (s *Service) UpdateRecord(ctx context.Context, req *domain.DNSRequest) erro
 func (s *Service) getRecords(ctx context.Context, req *domain.DNSRequest) ([]godo.DomainRecord, error) {
 	records, _, err := s.client.Domains.Records(ctx, req.GetDomain(), &godo.ListOptions{WithProjects: true})
 	if err != nil {
-		return nil, err
+		return nil, &dns.DNSProviderError{
+			Provider:  "DigitalOcean",
+			Operation: "list records",
+			Err:       err,
+		}
 	}
 	return records, nil
 }
@@ -76,7 +80,11 @@ func (s *Service) updateDNSRecord(ctx context.Context, req *domain.DNSRequest, r
 
 	_, _, err := s.client.Domains.EditRecord(ctx, req.GetDomain(), recordID, drer)
 	if err != nil {
-		return fmt.Errorf("Failed to update record: %w", err)
+		return &dns.DNSProviderError{
+			Provider:  "DigitalOcean",
+			Operation: "edit record",
+			Err:       err,
+		}
 	}
 	return nil
 }

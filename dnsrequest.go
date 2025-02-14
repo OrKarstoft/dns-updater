@@ -1,5 +1,9 @@
 package domain
 
+import (
+	"fmt"
+)
+
 type DNSRequest struct {
 	recordName string
 	domain     string
@@ -8,9 +12,11 @@ type DNSRequest struct {
 	recordType string
 }
 
-func NewDNSRequest(recordName, domain, zone, ip, recordType string) *DNSRequest {
+var ErrInvalidInput error = fmt.Errorf("invalid input")
+
+func NewDNSRequest(recordName, domain, zone, ip, recordType string) (*DNSRequest, error) {
 	if recordName == "" || domain == "" || zone == "" || ip == "" || recordType == "" {
-		return nil
+		return nil, ErrInvalidInput
 	}
 
 	return &DNSRequest{
@@ -19,7 +25,7 @@ func NewDNSRequest(recordName, domain, zone, ip, recordType string) *DNSRequest 
 		zone:       zone,
 		ip:         ip,
 		recordType: recordType,
-	}
+	}, nil
 }
 
 func (r *DNSRequest) GetIP() string {

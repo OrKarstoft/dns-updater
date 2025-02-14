@@ -2,6 +2,7 @@ package application
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 
@@ -62,7 +63,12 @@ func (s *Service) Run() {
 
 	if len(errs) > 0 {
 		for _, err := range errs {
-			log.Println(err)
+			var dnsErr *dns.DNSProviderError
+			if errors.As(err, &dnsErr) {
+				log.Printf("DNS provider error: %v", err)
+			} else {
+				log.Printf("General error: %v", err)
+			}
 		}
 	} else {
 		log.Println("All records updated successfully")
@@ -73,9 +79,9 @@ func (s *Service) Run() {
 func (s *Service) processRecord(record string, update config.Update, actualIP string) error {
 	_, span := s.startSpan("Creating DNS Request")
 
-	dnsReq := domain.NewDNSRequest(record, update.Domain, update.Zone, actualIP, update.Type)
+	dnsReq, err := domain.NewDNSRequest(record, update.Domain, update.Zone, actualIP, update.Type)
 	if dnsReq == nil {
-		return fmt.Errorf("invalid DNS request: %+v", dnsReq)
+		return fmt.Errorf("failed to create DNS request for record %s: %w", record, err)
 	}
 
 	s.endSpan(span)
