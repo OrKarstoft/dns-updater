@@ -1,30 +1,30 @@
 package ip
 
 import (
+	"fmt"
 	"io"
-	"log"
 	"net/http"
 )
 
-func Get() string {
+func Get() (string, error) {
 	req, err := http.NewRequest("GET", "https://myip.dk", nil)
 	if err != nil {
-		log.Fatal(err)
+		return "", fmt.Errorf("ip.Get returned an error at http.NewRequest: %w", err)
 	}
 
 	req.Header.Set("User-Agent", "curl/8.4.0")
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		log.Fatal(err)
+		return "", fmt.Errorf("ip.Get returned an error at http.DefaultClient.Do: %w", err)
 	}
 
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Fatal(err)
+		return "", fmt.Errorf("ip.Get returned an error at io.ReadAll: %w", err)
 	}
 
-	return string(body)
+	return string(body), nil
 }

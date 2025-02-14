@@ -46,7 +46,10 @@ func New(opts Options) *Service {
 }
 
 func (s *Service) Run() {
-	actualIP := ip.Get()
+	actualIP, err := ip.Get()
+	if err != nil {
+		log.Println(fmt.Errorf("application exited because of error from ip.Get(): %w", err))
+	}
 
 	var errs []error
 	for _, update := range config.Conf.Updates {
