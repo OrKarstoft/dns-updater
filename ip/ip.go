@@ -1,13 +1,18 @@
 package ip
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 )
 
 func Get() (string, error) {
-	req, err := http.NewRequest("GET", "https://myip.dk", nil)
+	ctx, cancelCtx := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancelCtx()
+
+	req, err := http.NewRequestWithContext(ctx, "GET", "https://myip.dk", nil)
 	if err != nil {
 		return "", fmt.Errorf("ip.Get returned an error at http.NewRequest: %w", err)
 	}
