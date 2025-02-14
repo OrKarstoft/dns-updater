@@ -8,7 +8,13 @@ import (
 	"time"
 )
 
+var cachedIp string
+
 func Get() (string, error) {
+	if cachedIp != "" {
+		return cachedIp, nil
+	}
+
 	ctx, cancelCtx := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelCtx()
 
