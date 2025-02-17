@@ -13,10 +13,21 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
+type IPResolver interface {
+	Get() (string, error)
+}
+
+// DNSUpdater handles the business logic for DNS updates
+type DNSUpdater struct {
+	dnsProvider dns.DNSImpl
+}
+
+// Service handles infrastructure concerns and orchestration
 type Service struct {
-	ctx            context.Context
-	providerClient dns.DNSImpl
-	tracer         trace.Tracer
+	ctx        context.Context
+	updater    *DNSUpdater
+	ipResolver IPResolver
+	tracer     trace.Tracer
 }
 
 type Options struct {
