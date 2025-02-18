@@ -41,12 +41,15 @@ func LoadConfig() {
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath(".")
 
-	err := viper.ReadInConfig()
-	if err != nil {
-		log.Fatal("Can't read config file:", err)
+	if err := viper.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			log.Fatal("Config file not found: %w", err)
+		} else {
+			log.Fatal("Config file found but error occured: %w", err)
+		}
 	}
 
-	err = viper.Unmarshal(&conf)
+	err := viper.Unmarshal(&conf)
 	if err != nil {
 		log.Fatal("Can't unmarshal config file:", err)
 	}
