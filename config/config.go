@@ -15,8 +15,8 @@ type Config struct {
 }
 
 type Provider struct {
-	Name   string
-	Config map[string]interface{}
+	name   string
+	config map[string]interface{}
 }
 
 type Update struct {
@@ -27,10 +27,10 @@ type Update struct {
 }
 
 type Tracing struct {
-	Enabled       bool
-	Host          string
-	Port          int
-	AllowInsecure bool
+	enabled       bool
+	host          string
+	port          int
+	allowInsecure bool
 }
 
 var Conf Config
@@ -57,10 +57,29 @@ func LoadConfig() {
 	Conf = conf
 }
 
-func (c Config) GetProviderString(s string) string {
+func (p Provider) GetString(s string) string {
+	if s == "name" {
+		return viper.GetString("provider.name")
+	}
 	return viper.GetString(fmt.Sprintf("provider.config.%s", s))
 }
 
-func (c Config) GetProviderInt(i int) int {
+func (p Provider) GetInt(i int) int {
 	return viper.GetInt(fmt.Sprintf("provider.config.%s", strconv.Itoa(i)))
+}
+
+func (p Provider) GetBool(s string) bool {
+	return viper.GetBool(fmt.Sprintf("provider.config.%s", s))
+}
+
+func (t Tracing) GetString(s string) string {
+	return viper.GetString(fmt.Sprintf("tracing.%s", s))
+}
+
+func (t Tracing) GetInt(s string) int {
+	return viper.GetInt(fmt.Sprintf("tracing.%s", s))
+}
+
+func (t Tracing) GetBool(s string) bool {
+	return viper.GetBool(fmt.Sprintf("tracing.%s", s))
 }

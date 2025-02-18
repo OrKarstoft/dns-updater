@@ -18,7 +18,7 @@ type Service struct {
 
 func NewService() dns.DNSImpl {
 	ctx := context.TODO()
-	client, err := googledns.NewService(ctx, option.WithCredentialsFile(config.Conf.GetProviderString("CredentialsFilePath")))
+	client, err := googledns.NewService(ctx, option.WithCredentialsFile(config.Conf.Provider.GetString("CredentialsFilePath")))
 	if err != nil {
 		log.Fatalf("Failed to create DNS client: %v", err)
 	}
@@ -28,7 +28,7 @@ func NewService() dns.DNSImpl {
 }
 
 func (s *Service) UpdateRecord(ctx context.Context, req *domain.DNSRequest) error {
-	projectID := config.Conf.GetProviderString("ProjectId")
+	projectID := config.Conf.Provider.GetString("ProjectId")
 	fullRecordName := fmt.Sprintf("%s.%s.", req.GetRecordName(), req.GetDomain())
 
 	records, err := s.listRecords(projectID, req.GetZone())
