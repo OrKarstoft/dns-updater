@@ -9,14 +9,14 @@ import (
 )
 
 type Config struct {
-	Provider Provider `mapstructure:"provider"`
-	Updates  []Update `mapstructure:"updates"`
-	Tracing  Tracing  `mapstructure:"tracing"`
+	Provider Provider
+	Updates  []Update
+	Tracing  Tracing
 }
 
 type Provider struct {
-	Name   string                 `mapstructure:"name"`
-	Config map[string]interface{} `mapstructure:"config"`
+	Name   string
+	Config map[string]interface{}
 }
 
 type Update struct {
@@ -27,10 +27,10 @@ type Update struct {
 }
 
 type Tracing struct {
-	Enabled       bool   `mapstructure:"enabled"`
-	Host          string `mapstructure:"host"`
-	Port          int    `mapstructure:"port"`
-	AllowInsecure bool   `mapstructure:"AllowInsecure"`
+	Enabled       bool
+	Host          string
+	Port          int
+	AllowInsecure bool
 }
 
 var Conf Config
