@@ -17,17 +17,11 @@ type IPResolver interface {
 	Get() (string, error)
 }
 
-// DNSUpdater handles the business logic for DNS updates
-type DNSUpdater struct {
-	dnsProvider dns.DNSImpl
-}
-
-// Service handles infrastructure concerns and orchestration
 type Service struct {
-	ctx        context.Context
-	updater    *DNSUpdater
-	ipResolver IPResolver
-	tracer     trace.Tracer
+	ctx         context.Context
+	dnsProvider dns.DNSImpl
+	ipResolver  IPResolver
+	tracer      trace.Tracer
 }
 
 type Options struct {
@@ -51,9 +45,9 @@ func New(opts Options) *Service {
 	}
 
 	return &Service{
-		ctx:            opts.Ctx,
-		providerClient: opts.ProviderClient,
-		tracer:         opts.Tracer,
+		ctx:         opts.Ctx,
+		dnsProvider: opts.ProviderClient,
+		tracer:      opts.Tracer,
 	}
 }
 
@@ -97,7 +91,7 @@ func (s *Service) processRecord(record string, update config.Update, actualIP st
 
 	s.endSpan(span)
 
-	return s.providerClient.UpdateRecord(s.ctx, dnsReq)
+	return s.dnsProvider.UpdateRecord(s.ctx, dnsReq)
 }
 
 // startSpan safely starts a tracing span if the tracer is available.
