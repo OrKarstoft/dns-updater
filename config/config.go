@@ -55,8 +55,6 @@ func LoadConfig() {
 	}
 
 	Conf = conf
-
-	log.Printf("Config loaded: %+v", conf)
 }
 
 func (c Config) GetProviderString(s string) string {
