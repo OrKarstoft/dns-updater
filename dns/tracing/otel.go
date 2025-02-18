@@ -28,11 +28,11 @@ var serviceName = semconv.ServiceNameKey.String("dns-updater")
 // providers.
 func initConn() (*grpc.ClientConn, error) {
 	// It connects the OpenTelemetry Collector through local gRPC connection.
-	tracingTarget := fmt.Sprintf("%s:%d", config.Conf.Tracing.Host, config.Conf.Tracing.Port)
+	tracingTarget := fmt.Sprintf("%s:%d", config.Conf.Tracing.GetString("host"), config.Conf.Tracing.GetInt("port"))
 
 	var conn *grpc.ClientConn
 	var err error
-	if config.Conf.Tracing.AllowInsecure {
+	if config.Conf.Tracing.GetBool("allowInsecure") {
 		conn, err = grpc.NewClient(tracingTarget,
 			grpc.WithTransportCredentials(insecure.NewCredentials()),
 		)

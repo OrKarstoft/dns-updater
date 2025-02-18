@@ -40,7 +40,7 @@ func New(opts Options) *Service {
 		log.Fatal("No valid DNS provider specified")
 	}
 
-	if config.Conf.Tracing.Enabled && opts.Tracer == nil {
+	if config.Conf.Tracing.GetBool("enabled") && opts.Tracer == nil {
 		log.Fatal("No valid tracer specified")
 	}
 

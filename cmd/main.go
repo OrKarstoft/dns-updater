@@ -27,7 +27,7 @@ func main() {
 		ProviderClient: dnsProvider,
 	}
 
-	if config.Conf.Tracing.Enabled {
+	if config.Conf.Tracing.GetBool("enabled") {
 		tracingService, shutdownTracer := tracing.NewService(ctx, dnsProvider)
 		defer shutdownTracer(ctx)
 
@@ -46,11 +46,11 @@ func main() {
 
 func getDNSProvider() dns.DNSImpl {
 	var dnsProvider dns.DNSImpl
-	switch config.Conf.Provider.Name {
+	switch config.Conf.Provider.GetString("name") {
 	case "googlecloudplatform":
 		dnsProvider = gcp.NewService()
 	case "digitalocean":
-		dnsProvider = digitalocean.NewService(config.Conf.GetProviderString("token"))
+		dnsProvider = digitalocean.NewService(config.Conf.Provider.GetString("token"))
 	default:
 		log.Fatal("No vaild DNS provider specified")
 	}

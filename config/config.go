@@ -9,14 +9,14 @@ import (
 )
 
 type Config struct {
-	Provider Provider `mapstructure:"provider"`
-	Updates  []Update `mapstructure:"updates"`
-	Tracing  Tracing  `mapstructure:"tracing"`
+	Provider Provider
+	Updates  []Update
+	Tracing  Tracing
 }
 
 type Provider struct {
-	Name   string                 `mapstructure:"name"`
-	Config map[string]interface{} `mapstructure:"config"`
+	name   string
+	config map[string]interface{}
 }
 
 type Update struct {
@@ -27,10 +27,10 @@ type Update struct {
 }
 
 type Tracing struct {
-	Enabled       bool   `mapstructure:"enabled"`
-	Host          string `mapstructure:"host"`
-	Port          int    `mapstructure:"port"`
-	AllowInsecure bool   `mapstructure:"AllowInsecure"`
+	enabled       bool
+	host          string
+	port          int
+	allowInsecure bool
 }
 
 var Conf Config
@@ -41,25 +41,45 @@ func LoadConfig() {
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath(".")
 
-	err := viper.ReadInConfig()
-	if err != nil {
-		log.Fatal("Can't read config file:", err)
+	if err := viper.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			log.Fatal("Config file not found: %w", err)
+		} else {
+			log.Fatal("Config file found but error occured: %w", err)
+		}
 	}
 
-	err = viper.Unmarshal(&conf)
+	err := viper.Unmarshal(&conf)
 	if err != nil {
 		log.Fatal("Can't unmarshal config file:", err)
 	}
 
 	Conf = conf
-
-	log.Printf("Config loaded: %+v", conf)
 }
 
-func (c Config) GetProviderString(s string) string {
+func (p Provider) GetString(s string) string {
+	if s == "name" {
+		return viper.GetString("provider.name")
+	}
 	return viper.GetString(fmt.Sprintf("provider.config.%s", s))
 }
 
-func (c Config) GetProviderInt(i int) int {
+func (p Provider) GetInt(i int) int {
 	return viper.GetInt(fmt.Sprintf("provider.config.%s", strconv.Itoa(i)))
+}
+
+func (p Provider) GetBool(s string) bool {
+	return viper.GetBool(fmt.Sprintf("provider.config.%s", s))
+}
+
+func (t Tracing) GetString(s string) string {
+	return viper.GetString(fmt.Sprintf("tracing.%s", s))
+}
+
+func (t Tracing) GetInt(s string) int {
+	return viper.GetInt(fmt.Sprintf("tracing.%s", s))
+}
+
+func (t Tracing) GetBool(s string) bool {
+	return viper.GetBool(fmt.Sprintf("tracing.%s", s))
 }
