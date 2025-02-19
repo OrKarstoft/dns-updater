@@ -31,7 +31,12 @@ func NewService(projectId, credentialsFile string) dns.DNSImpl {
 func (s *Service) UpdateRecord(ctx context.Context, req *domain.DNSRequest) error {
 	fullRecordName := fmt.Sprintf("%s.%s.", req.GetRecordName(), req.GetDomain())
 
-	records, err := s.listRecords(projectID, req.GetZone())
+	// If the record name is @, it means the root domain
+	if req.GetRecordName() == "@" {
+		fullRecordName = fmt.Sprintf("%s.", req.GetDomain())
+	}
+
+	records, err := s.listRecords(s.projectId, req.GetZone())
 	if err != nil {
 		return err
 	}
@@ -46,7 +51,7 @@ func (s *Service) UpdateRecord(ctx context.Context, req *domain.DNSRequest) erro
 		return nil
 	}
 
-	if err := s.updateDNSRecord(projectID, req.GetZone(), recordToUpdate, req); err != nil {
+	if err := s.updateDNSRecord(s.projectId, req.GetZone(), recordToUpdate, req, fullRecordName); err != nil {
 		return err
 	}
 
@@ -75,9 +80,9 @@ func findMatchingRecord(records []*googledns.ResourceRecordSet, name, recordType
 	return nil
 }
 
-func (s *Service) updateDNSRecord(projectID, zone string, oldRecord *googledns.ResourceRecordSet, req *domain.DNSRequest) error {
+func (s *Service) updateDNSRecord(projectID, zone string, oldRecord *googledns.ResourceRecordSet, req *domain.DNSRequest, fullRecordName string) error {
 	newRecord := &googledns.ResourceRecordSet{
-		Name:    oldRecord.Name,
+		Name:    fullRecordName,
 		Type:    oldRecord.Type,
 		Ttl:     oldRecord.Ttl, // Preserve TTL
 		Rrdatas: []string{req.GetIP()},
