@@ -42,29 +42,36 @@ Create a `config.yaml` file with your DNS provider credentials and update config
 ### DigitalOcean Example:
 
 ```bash
-doToken: "your-digitalocean-api-token"
+provider:
+  name: digitalocean
+  config:
+    token: <DO_TOKEN>
+
 updates:
-  - domain: "example.com"
-    zone: "example.com"
-    records: 
-      - "www"
-      - "@"
-    type: "A"
+  - domain: example.com
+    zone: example-com
+    type: A
+    records:
+    - "@" # Set the root level record, so example.com
+    - record1 # Set the subdomain record, so record1.example.com
 ```
 
 ### Google Cloud Platform Example:
 
 ```bash
-gcp:
-  credentialsFile: "/path/to/credentials.json"
-  projectId: "your-project-id"
+provider:
+    name: googlecloudplatform
+    config:
+        credentialsFile: "/path/to/credentials.json"
+        projectId: "your-project-id"
+
 updates:
-  - domain: "example.com"
-    zone: "example-com"
-    records: 
-      - "www"
-      - "@"
-    type: "A"
+    - domain: example.com
+      zone: example-com
+      type: "A"
+      records: 
+          - record1
+          - record2
 ```
 
 ## Usage
