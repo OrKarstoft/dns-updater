@@ -64,10 +64,8 @@ func (s *Service) getRecords(ctx context.Context, req *domain.DNSRequest) ([]god
 
 func findMatchingRecord(records []godo.DomainRecord, req *domain.DNSRequest) *godo.DomainRecord {
 	for _, record := range records {
-		if record.Name == req.GetRecordName() {
-			if record.Data == req.GetIP() {
-				return &record
-			}
+		if record.Name == req.GetRecordName() && record.Type == req.GetRecordType() {
+			return &record
 		}
 	}
 	return nil
