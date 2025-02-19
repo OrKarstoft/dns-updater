@@ -6,29 +6,29 @@ import (
 	"log"
 
 	domain "github.com/orkarstoft/dns-updater"
-	"github.com/orkarstoft/dns-updater/config"
 	"github.com/orkarstoft/dns-updater/dns"
 	googledns "google.golang.org/api/dns/v1"
 	"google.golang.org/api/option"
 )
 
 type Service struct {
-	client *googledns.Service
+	client    *googledns.Service
+	projectId string
 }
 
-func NewService() dns.DNSImpl {
+func NewService(projectId, credentialsFile string) dns.DNSImpl {
 	ctx := context.TODO()
-	client, err := googledns.NewService(ctx, option.WithCredentialsFile(config.Conf.Provider.GetString("CredentialsFilePath")))
+	client, err := googledns.NewService(ctx, option.WithCredentialsFile(credentialsFile))
 	if err != nil {
 		log.Fatalf("Failed to create DNS client: %v", err)
 	}
 	return &Service{
-		client: client,
+		client:    client,
+		projectId: projectId,
 	}
 }
 
 func (s *Service) UpdateRecord(ctx context.Context, req *domain.DNSRequest) error {
-	projectID := config.Conf.Provider.GetString("ProjectId")
 	fullRecordName := fmt.Sprintf("%s.%s.", req.GetRecordName(), req.GetDomain())
 
 	records, err := s.listRecords(projectID, req.GetZone())
