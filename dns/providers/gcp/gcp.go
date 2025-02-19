@@ -96,7 +96,7 @@ func (s *Service) updateDNSRecord(projectID, zone string, oldRecord *googledns.R
 	_, err := s.client.Changes.Create(projectID, zone, change).Do()
 	if err != nil {
 		return &dns.DNSProviderError{
-			Provider:  "DigitalOcean",
+			Provider:  "GoogleCloudPlatform",
 			Operation: "record update",
 			Err:       err,
 		}
