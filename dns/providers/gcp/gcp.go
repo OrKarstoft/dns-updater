@@ -6,32 +6,37 @@ import (
 	"log"
 
 	domain "github.com/orkarstoft/dns-updater"
-	"github.com/orkarstoft/dns-updater/config"
 	"github.com/orkarstoft/dns-updater/dns"
 	googledns "google.golang.org/api/dns/v1"
 	"google.golang.org/api/option"
 )
 
 type Service struct {
-	client *googledns.Service
+	client    *googledns.Service
+	projectId string
 }
 
-func NewService() dns.DNSImpl {
+func NewService(projectId, credentialsFile string) dns.DNSImpl {
 	ctx := context.TODO()
-	client, err := googledns.NewService(ctx, option.WithCredentialsFile(config.Conf.Provider.GetString("CredentialsFilePath")))
+	client, err := googledns.NewService(ctx, option.WithCredentialsFile(credentialsFile))
 	if err != nil {
 		log.Fatalf("Failed to create DNS client: %v", err)
 	}
 	return &Service{
-		client: client,
+		client:    client,
+		projectId: projectId,
 	}
 }
 
 func (s *Service) UpdateRecord(ctx context.Context, req *domain.DNSRequest) error {
-	projectID := config.Conf.Provider.GetString("ProjectId")
 	fullRecordName := fmt.Sprintf("%s.%s.", req.GetRecordName(), req.GetDomain())
 
-	records, err := s.listRecords(projectID, req.GetZone())
+	// If the record name is @, it means the root domain
+	if req.GetRecordName() == "@" {
+		fullRecordName = fmt.Sprintf("%s.", req.GetDomain())
+	}
+
+	records, err := s.listRecords(s.projectId, req.GetZone())
 	if err != nil {
 		return err
 	}
@@ -46,7 +51,7 @@ func (s *Service) UpdateRecord(ctx context.Context, req *domain.DNSRequest) erro
 		return nil
 	}
 
-	if err := s.updateDNSRecord(projectID, req.GetZone(), recordToUpdate, req); err != nil {
+	if err := s.updateDNSRecord(s.projectId, req.GetZone(), recordToUpdate, req, fullRecordName); err != nil {
 		return err
 	}
 
@@ -75,9 +80,9 @@ func findMatchingRecord(records []*googledns.ResourceRecordSet, name, recordType
 	return nil
 }
 
-func (s *Service) updateDNSRecord(projectID, zone string, oldRecord *googledns.ResourceRecordSet, req *domain.DNSRequest) error {
+func (s *Service) updateDNSRecord(projectID, zone string, oldRecord *googledns.ResourceRecordSet, req *domain.DNSRequest, fullRecordName string) error {
 	newRecord := &googledns.ResourceRecordSet{
-		Name:    oldRecord.Name,
+		Name:    fullRecordName,
 		Type:    oldRecord.Type,
 		Ttl:     oldRecord.Ttl, // Preserve TTL
 		Rrdatas: []string{req.GetIP()},
@@ -91,7 +96,7 @@ func (s *Service) updateDNSRecord(projectID, zone string, oldRecord *googledns.R
 	_, err := s.client.Changes.Create(projectID, zone, change).Do()
 	if err != nil {
 		return &dns.DNSProviderError{
-			Provider:  "DigitalOcean",
+			Provider:  "GoogleCloudPlatform",
 			Operation: "record update",
 			Err:       err,
 		}

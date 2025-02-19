@@ -48,7 +48,7 @@ func getDNSProvider() dns.DNSImpl {
 	var dnsProvider dns.DNSImpl
 	switch config.Conf.Provider.GetString("name") {
 	case "googlecloudplatform":
-		dnsProvider = gcp.NewService()
+		dnsProvider = gcp.NewService(config.Conf.Provider.GetString("projectId"), config.Conf.Provider.GetString("credentialsFile"))
 	case "digitalocean":
 		dnsProvider = digitalocean.NewService(config.Conf.Provider.GetString("token"))
 	default:
