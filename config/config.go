@@ -5,6 +5,7 @@ import (
 	"log"
 	"strconv"
 
+	"github.com/mitchellh/mapstructure"
 	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
 )
@@ -71,7 +72,12 @@ func LoadConfig() {
 		}
 	}
 
-	err := viper.Unmarshal(&conf, viper.DecodeHook(DecodeLogLevelHookFunc()), viper.DecodeHook(DecodeLogTypeHookFunc()))
+	err := viper.Unmarshal(&conf, viper.DecodeHook(
+		mapstructure.ComposeDecodeHookFunc(
+			DecodeLogLevelHookFunc(),
+			DecodeLogTypeHookFunc(),
+		),
+	))
 	if err != nil {
 		log.Fatal("Can't unmarshal config file:", err)
 	}

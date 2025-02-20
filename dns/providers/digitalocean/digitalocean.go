@@ -8,21 +8,26 @@ import (
 	"github.com/digitalocean/godo"
 	domain "github.com/orkarstoft/dns-updater"
 	"github.com/orkarstoft/dns-updater/dns"
+	"github.com/rs/zerolog"
 )
 
 type Service struct {
 	client *godo.Client
+	logger *zerolog.Logger
 }
 
-func NewService(apiToken string) dns.DNSImpl {
+func NewService(logger *zerolog.Logger, apiToken string) dns.DNSImpl {
 	if apiToken == "" {
 		log.Fatal("API token is required")
 	}
 
 	client := godo.NewFromToken(apiToken)
 
+	loggerSvc := logger.With().Str("module", "provider.digitalocean").Logger()
+
 	return &Service{
 		client: client,
+		logger: &loggerSvc,
 	}
 }
 
@@ -38,7 +43,7 @@ func (s *Service) UpdateRecord(ctx context.Context, req *domain.DNSRequest) erro
 	}
 
 	if record.Data == req.GetIP() {
-		fmt.Println("[DEBUG] Record already up to date")
+		s.logger.Debug().Msg("Record already up to date")
 		return nil
 	}
 
@@ -46,7 +51,7 @@ func (s *Service) UpdateRecord(ctx context.Context, req *domain.DNSRequest) erro
 		return err
 	}
 
-	fmt.Println("[DEBUG] Record updated")
+	s.logger.Debug().Msg("Record updated")
 	return nil
 }
 
