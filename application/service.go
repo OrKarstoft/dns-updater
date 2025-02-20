@@ -10,6 +10,7 @@ import (
 	"github.com/orkarstoft/dns-updater/config"
 	"github.com/orkarstoft/dns-updater/dns"
 	"github.com/orkarstoft/dns-updater/ip"
+	"github.com/rs/zerolog"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -22,12 +23,14 @@ type Service struct {
 	dnsProvider dns.DNSImpl
 	ipResolver  IPResolver
 	tracer      trace.Tracer
+	logger      *zerolog.Logger
 }
 
 type Options struct {
 	Ctx            context.Context
 	ProviderClient dns.DNSImpl
 	Tracer         trace.Tracer
+	Logger         *zerolog.Logger
 }
 
 func New(opts Options) *Service {
@@ -44,17 +47,25 @@ func New(opts Options) *Service {
 		log.Fatal("No valid tracer specified")
 	}
 
+	if opts.Logger == nil {
+		log.Fatal("No valid logger specified")
+	}
+
+	loggerSvc := opts.Logger.With().Str("module", "application").Logger()
+
 	return &Service{
 		ctx:         opts.Ctx,
 		dnsProvider: opts.ProviderClient,
 		tracer:      opts.Tracer,
+		logger:      &loggerSvc,
 	}
 }
 
 func (s *Service) Run() {
 	actualIP, err := ip.Get()
 	if err != nil {
-		log.Println(fmt.Errorf("application exited because of error from ip.Get(): %w", err))
+		s.logger.Error().Err(err).Msg("application exited because of error from ip.Get()")
+		return
 	}
 
 	var errs []error
@@ -70,13 +81,13 @@ func (s *Service) Run() {
 		for _, err := range errs {
 			var dnsErr *dns.DNSProviderError
 			if errors.As(err, &dnsErr) {
-				log.Printf("DNS provider error: %v", err)
+				s.logger.Error().Err(dnsErr).Msg("DNS provider error")
 			} else {
-				log.Printf("General error: %v", err)
+				s.logger.Error().Err(err).Msg("General error")
 			}
 		}
 	} else {
-		log.Println("All records updated successfully")
+		s.logger.Info().Msg("All records updated successfully")
 	}
 }
 
