@@ -7,6 +7,7 @@ import (
 
 	domain "github.com/orkarstoft/dns-updater"
 	"github.com/orkarstoft/dns-updater/dns"
+	"github.com/rs/zerolog"
 	googledns "google.golang.org/api/dns/v1"
 	"google.golang.org/api/option"
 )
@@ -14,17 +15,21 @@ import (
 type Service struct {
 	client    *googledns.Service
 	projectId string
+	logger    *zerolog.Logger
 }
 
-func NewService(projectId, credentialsFile string) dns.DNSImpl {
+func NewService(logger *zerolog.Logger, projectId, credentialsFile string) dns.DNSImpl {
 	ctx := context.TODO()
 	client, err := googledns.NewService(ctx, option.WithCredentialsFile(credentialsFile))
 	if err != nil {
 		log.Fatalf("Failed to create DNS client: %v", err)
 	}
+
+	loggerSvc := logger.With().Str("module", "provider.gcp").Logger()
 	return &Service{
 		client:    client,
 		projectId: projectId,
+		logger:    &loggerSvc,
 	}
 }
 
@@ -47,7 +52,7 @@ func (s *Service) UpdateRecord(ctx context.Context, req *domain.DNSRequest) erro
 	}
 
 	if recordToUpdate.Rrdatas[0] == req.GetIP() {
-		fmt.Println("[DEBUG] Record is already up to date")
+		s.logger.Debug().Msg("Record is already up to date")
 		return nil
 	}
 
@@ -55,7 +60,7 @@ func (s *Service) UpdateRecord(ctx context.Context, req *domain.DNSRequest) erro
 		return err
 	}
 
-	fmt.Println("[DEBUG] Change applied successfully")
+	s.logger.Debug().Msg("Record updated")
 	return nil
 }
 

@@ -5,6 +5,8 @@ import (
 	"log"
 	"strconv"
 
+	"github.com/mitchellh/mapstructure"
+	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
 )
 
@@ -12,6 +14,7 @@ type Config struct {
 	Provider Provider
 	Updates  []Update
 	Tracing  Tracing
+	Log      Log
 }
 
 type Provider struct {
@@ -33,6 +36,19 @@ type Tracing struct {
 	allowInsecure bool
 }
 
+type LogType string
+
+const (
+	LOGTYPE_JSON   LogType = "json"
+	LOGTYPE_PRETTY LogType = "pretty"
+	LOGTYPE_FILE   LogType = "file"
+)
+
+type Log struct {
+	Level zerolog.Level
+	Type  LogType
+}
+
 var Conf Config
 
 func LoadConfig() {
@@ -40,6 +56,13 @@ func LoadConfig() {
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath(".")
+
+	// Default config
+	//// Tracing
+	viper.SetDefault("tracing.enabled", false)
+	//// Log
+	viper.SetDefault("log.level", "info")
+	viper.SetDefault("log.type", "pretty")
 
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
@@ -49,7 +72,12 @@ func LoadConfig() {
 		}
 	}
 
-	err := viper.Unmarshal(&conf)
+	err := viper.Unmarshal(&conf, viper.DecodeHook(
+		mapstructure.ComposeDecodeHookFunc(
+			DecodeLogLevelHookFunc(),
+			DecodeLogTypeHookFunc(),
+		),
+	))
 	if err != nil {
 		log.Fatal("Can't unmarshal config file:", err)
 	}

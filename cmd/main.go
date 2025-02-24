@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log"
 	"os"
 	"os/signal"
@@ -12,6 +13,8 @@ import (
 	"github.com/orkarstoft/dns-updater/dns/providers/digitalocean"
 	"github.com/orkarstoft/dns-updater/dns/providers/gcp"
 	"github.com/orkarstoft/dns-updater/dns/tracing"
+	"github.com/orkarstoft/dns-updater/logger"
+	"github.com/rs/zerolog"
 )
 
 func main() {
@@ -20,11 +23,23 @@ func main() {
 
 	config.LoadConfig()
 
-	dnsProvider := getDNSProvider()
+	loggerSvc, err := logger.New(config.Conf.Log.Type, config.Conf.Log.Level)
+	if err != nil {
+		// You can unwrap the error if needed
+		var logErr *logger.LoggerError
+		if errors.As(err, &logErr) {
+			log.Fatal("Logger operation '%s' failed: %v\n", logErr.Operation, logErr.Err)
+		}
+		// Handle error appropriately
+		log.Fatal(err)
+	}
+
+	dnsProvider := getDNSProvider(loggerSvc)
 
 	options := application.Options{
 		Ctx:            ctx,
 		ProviderClient: dnsProvider,
+		Logger:         loggerSvc,
 	}
 
 	if config.Conf.Tracing.GetBool("enabled") {
@@ -44,15 +59,15 @@ func main() {
 	service.Run()
 }
 
-func getDNSProvider() dns.DNSImpl {
+func getDNSProvider(logger *zerolog.Logger) dns.DNSImpl {
 	var dnsProvider dns.DNSImpl
 	switch config.Conf.Provider.GetString("name") {
 	case "googlecloudplatform":
-		dnsProvider = gcp.NewService(config.Conf.Provider.GetString("projectId"), config.Conf.Provider.GetString("credentialsFile"))
+		dnsProvider = gcp.NewService(logger, config.Conf.Provider.GetString("projectId"), config.Conf.Provider.GetString("credentialsFile"))
 	case "digitalocean":
-		dnsProvider = digitalocean.NewService(config.Conf.Provider.GetString("token"))
+		dnsProvider = digitalocean.NewService(logger, config.Conf.Provider.GetString("token"))
 	default:
-		log.Fatal("No vaild DNS provider specified")
+		logger.Fatal().Msg("No valid DNS provider specified in config file")
 	}
 	return dnsProvider
 }
