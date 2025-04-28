@@ -5,7 +5,7 @@ go 1.23.1
 require (
 	github.com/digitalocean/godo v1.138.0
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/rs/zerolog v1.33.0
+	github.com/rs/zerolog v1.34.0
 	github.com/spf13/viper v1.19.0
 	go.opentelemetry.io/otel v1.35.0
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc v1.34.0
