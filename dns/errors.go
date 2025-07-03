@@ -2,6 +2,12 @@ package dns
 
 import "fmt"
 
+const (
+	OperationCreateRecord = "create record"
+	OperationUpdateRecord = "update record"
+	OperationListRecords  = "list records"
+)
+
 type DNSProviderError struct {
 	Provider  string
 	Operation string
