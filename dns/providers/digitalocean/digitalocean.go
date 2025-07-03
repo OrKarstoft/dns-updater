@@ -11,6 +11,10 @@ import (
 	"github.com/rs/zerolog"
 )
 
+const (
+	providerName = "DigitalOcean"
+)
+
 type Service struct {
 	client *godo.Client
 	logger *zerolog.Logger
@@ -39,19 +43,25 @@ func (s *Service) UpdateRecord(ctx context.Context, req *domain.DNSRequest) erro
 
 	record := findMatchingRecord(records, req)
 	if record == nil {
-		return fmt.Errorf("record %s not found in domain %s", req.GetRecordName(), req.GetDomain())
+		s.logger.Debug().Msgf("Record %s not found in domain %s, creating new record", req.GetRecordName(), req.GetDomain())
+		if err := s.createDNSRecord(ctx, req); err != nil {
+			return fmt.Errorf("failed to create record: %w", err)
+		}
+		return nil
 	}
 
+	s.logger.Debug().Msgf("Record %s found in domain %s, updating record", req.GetRecordName(), req.GetDomain())
 	if record.Data == req.GetIP() {
 		s.logger.Debug().Msg("Record already up to date")
 		return nil
 	}
 
 	if err := s.updateDNSRecord(ctx, req, record.ID); err != nil {
-		return err
+		return fmt.Errorf("failed to update record: %w", err)
 	}
 
 	s.logger.Debug().Msg("Record updated")
+
 	return nil
 }
 
@@ -59,8 +69,8 @@ func (s *Service) getRecords(ctx context.Context, req *domain.DNSRequest) ([]god
 	records, _, err := s.client.Domains.Records(ctx, req.GetDomain(), &godo.ListOptions{WithProjects: true})
 	if err != nil {
 		return nil, &dns.DNSProviderError{
-			Provider:  "DigitalOcean",
-			Operation: "list records",
+			Provider:  providerName,
+			Operation: dns.OperationListRecords,
 			Err:       err,
 		}
 	}
@@ -84,10 +94,29 @@ func (s *Service) updateDNSRecord(ctx context.Context, req *domain.DNSRequest, r
 	_, _, err := s.client.Domains.EditRecord(ctx, req.GetDomain(), recordID, drer)
 	if err != nil {
 		return &dns.DNSProviderError{
-			Provider:  "DigitalOcean",
-			Operation: "edit record",
+			Provider:  providerName,
+			Operation: dns.OperationUpdateRecord,
 			Err:       err,
 		}
 	}
+	return nil
+}
+
+func (s *Service) createDNSRecord(ctx context.Context, req *domain.DNSRequest) error {
+	drr := &godo.DomainRecordEditRequest{
+		Type: req.GetRecordType(),
+		Name: req.GetRecordName(),
+		Data: req.GetIP(),
+	}
+
+	_, _, err := s.client.Domains.CreateRecord(ctx, req.GetDomain(), drr)
+	if err != nil {
+		return &dns.DNSProviderError{
+			Provider:  providerName,
+			Operation: dns.OperationCreateRecord,
+			Err:       err,
+		}
+	}
+	s.logger.Debug().Msg("Record created")
 	return nil
 }

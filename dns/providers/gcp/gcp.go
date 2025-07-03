@@ -12,6 +12,10 @@ import (
 	"google.golang.org/api/option"
 )
 
+const (
+	providerName = "GoogleCloudPlatform"
+)
+
 type Service struct {
 	client    *googledns.Service
 	projectId string
@@ -48,7 +52,11 @@ func (s *Service) UpdateRecord(ctx context.Context, req *domain.DNSRequest) erro
 
 	recordToUpdate := findMatchingRecord(records, fullRecordName, req.GetRecordType())
 	if recordToUpdate == nil {
-		return fmt.Errorf("record %s of type %s not found in zone %s", req.GetRecordName(), req.GetRecordType(), req.GetZone())
+		s.logger.Debug().Msgf("Record %s not found in zone %s, creating new record", fullRecordName, req.GetZone())
+		if err := s.createDNSRecord(s.projectId, req.GetZone(), req, fullRecordName); err != nil {
+			return fmt.Errorf("failed to create record: %w", err)
+		}
+		return nil
 	}
 
 	if recordToUpdate.Rrdatas[0] == req.GetIP() {
@@ -101,10 +109,29 @@ func (s *Service) updateDNSRecord(projectID, zone string, oldRecord *googledns.R
 	_, err := s.client.Changes.Create(projectID, zone, change).Do()
 	if err != nil {
 		return &dns.DNSProviderError{
-			Provider:  "GoogleCloudPlatform",
-			Operation: "record update",
+			Provider:  providerName,
+			Operation: dns.OperationUpdateRecord,
 			Err:       err,
 		}
 	}
+	return nil
+}
+
+func (s *Service) createDNSRecord(projectID, zone string, req *domain.DNSRequest, fullRecordName string) error {
+	newRecord := &googledns.ResourceRecordSet{
+		Name:    fullRecordName,
+		Type:    req.GetRecordType(),
+		Ttl:     300, // Default TTL
+		Rrdatas: []string{req.GetIP()},
+	}
+	_, err := s.client.ResourceRecordSets.Create(projectID, zone, newRecord).Do()
+	if err != nil {
+		return &dns.DNSProviderError{
+			Provider:  providerName,
+			Operation: dns.OperationCreateRecord,
+			Err:       err,
+		}
+	}
+	s.logger.Debug().Msg("Record created")
 	return nil
 }
