@@ -41,7 +41,7 @@ Create a `config.yaml` file with your DNS provider credentials and update config
 
 ### DigitalOcean Example:
 
-```bash
+```yaml
 provider:
   name: digitalocean
   config:
@@ -58,20 +58,36 @@ updates:
 
 ### Google Cloud Platform Example:
 
-```bash
+```yaml
 provider:
-    name: googlecloudplatform
-    config:
-        credentialsFile: "/path/to/credentials.json"
-        projectId: "your-project-id"
+  name: googlecloudplatform
+  config:
+    credentialsFile: "/path/to/credentials.json"
+    projectId: "your-project-id"
 
 updates:
-    - domain: example.com
-      zone: example-com
-      type: "A"
-      records: 
-          - record1
-          - record2
+  - domain: example.com
+    zone: example-com
+    type: "A"
+    records: 
+    - record1
+    - record2
+```
+
+### Tracing Example:
+```yaml
+tracing:
+  enabled: true
+  host: dns-updater-jaeger-1 # This would be the hostname when running with docker compose
+  port: 4317
+  allowInsecure: true
+```
+
+### Logging Example:
+```yaml
+log:
+  level: debug # info, warning, debug
+  type: pretty # json, pretty, file (app.log)
 ```
 
 ## Usage
