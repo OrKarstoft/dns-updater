@@ -39,7 +39,7 @@ func (s *Service) UpdateRecord(ctx context.Context, req *domain.DNSRequest) erro
 
 	record := findMatchingRecord(records, req)
 	if record == nil {
-		return fmt.Errorf("Record %s not found in domain %s", req.GetRecordName(), req.GetDomain())
+		return fmt.Errorf("record %s not found in domain %s", req.GetRecordName(), req.GetDomain())
 	}
 
 	if record.Data == req.GetIP() {
