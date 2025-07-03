@@ -4,7 +4,7 @@ go 1.23.1
 
 require (
 	github.com/digitalocean/godo v1.138.0
-	github.com/mitchellh/mapstructure v1.5.0
+	github.com/go-viper/mapstructure/v2 v2.2.1
 	github.com/rs/zerolog v1.34.0
 	github.com/spf13/viper v1.20.1
 	go.opentelemetry.io/otel v1.35.0
@@ -26,7 +26,6 @@ require (
 	github.com/fsnotify/fsnotify v1.8.0 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
-	github.com/go-viper/mapstructure/v2 v2.2.1 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/s2a-go v0.1.9 // indirect
 	github.com/google/uuid v1.6.0 // indirect
