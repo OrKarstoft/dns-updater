@@ -2,7 +2,6 @@ package digitalocean
 
 import (
 	"context"
-	"fmt"
 	"log"
 
 	"github.com/digitalocean/godo"
