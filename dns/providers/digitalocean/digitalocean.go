@@ -117,6 +117,11 @@ func (s *Service) createDNSRecord(ctx context.Context, req *domain.DNSRequest) e
 			Err:       err,
 		}
 	}
-	s.logger.Debug().Msg("Record created")
+	s.logger.Debug().
+		Str("name", drr.Name).
+		Str("type", drr.Type).
+		Str("ip", req.GetIP()).
+		Str("zone", req.GetZone()).
+		Msg("Record created")
 	return nil
 }

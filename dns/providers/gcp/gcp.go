@@ -14,7 +14,8 @@ import (
 
 const (
 	providerName = "googlecloudplatform"
-	defaultTTL   = 300
+	// defaultTTL is the default Time To Live (TTL) for DNS records in seconds
+	defaultTTL = 300
 )
 
 type Service struct {
@@ -133,6 +134,11 @@ func (s *Service) createDNSRecord(projectID, zone string, req *domain.DNSRequest
 			Err:       err,
 		}
 	}
-	s.logger.Debug().Msg("Record created")
+	s.logger.Debug().
+		Str("name", newRecord.Name).
+		Str("type", newRecord.Type).
+		Str("ip", req.GetIP()).
+		Str("zone", req.GetZone()).
+		Msg("Record created")
 	return nil
 }
