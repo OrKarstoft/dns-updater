@@ -14,6 +14,7 @@ import (
 
 const (
 	providerName = "googlecloudplatform"
+	defaultTTL   = 300
 )
 
 type Service struct {
@@ -54,7 +55,7 @@ func (s *Service) UpdateRecord(ctx context.Context, req *domain.DNSRequest) erro
 	if recordToUpdate == nil {
 		s.logger.Debug().Msgf("Record %s not found in zone %s, creating new record", fullRecordName, req.GetZone())
 		if err := s.createDNSRecord(s.projectId, req.GetZone(), req, fullRecordName); err != nil {
-			return fmt.Errorf("failed to create record: %w", err)
+			return err
 		}
 		return nil
 	}
@@ -121,7 +122,7 @@ func (s *Service) createDNSRecord(projectID, zone string, req *domain.DNSRequest
 	newRecord := &googledns.ResourceRecordSet{
 		Name:    fullRecordName,
 		Type:    req.GetRecordType(),
-		Ttl:     300, // Default TTL
+		Ttl:     defaultTTL, // Default TTL
 		Rrdatas: []string{req.GetIP()},
 	}
 	_, err := s.client.ResourceRecordSets.Create(projectID, zone, newRecord).Do()

@@ -45,7 +45,7 @@ func (s *Service) UpdateRecord(ctx context.Context, req *domain.DNSRequest) erro
 	if record == nil {
 		s.logger.Debug().Msgf("Record %s not found in domain %s, creating new record", req.GetRecordName(), req.GetDomain())
 		if err := s.createDNSRecord(ctx, req); err != nil {
-			return fmt.Errorf("failed to create record: %w", err)
+			return err
 		}
 		return nil
 	}
@@ -57,7 +57,7 @@ func (s *Service) UpdateRecord(ctx context.Context, req *domain.DNSRequest) erro
 	}
 
 	if err := s.updateDNSRecord(ctx, req, record.ID); err != nil {
-		return fmt.Errorf("failed to update record: %w", err)
+		return err
 	}
 
 	s.logger.Debug().Msg("Record updated")
