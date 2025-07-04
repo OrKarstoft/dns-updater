@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	providerName = "GoogleCloudPlatform"
+	providerName = "googlecloudplatform"
 )
 
 type Service struct {

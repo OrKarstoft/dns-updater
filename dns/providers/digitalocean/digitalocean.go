@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	providerName = "DigitalOcean"
+	providerName = "digitalocean"
 )
 
 type Service struct {
