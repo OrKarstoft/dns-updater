@@ -4,7 +4,7 @@ go 1.23.1
 
 require (
 	github.com/digitalocean/godo v1.159.0
-	github.com/go-viper/mapstructure/v2 v2.3.0
+	github.com/go-viper/mapstructure/v2 v2.4.0
 	github.com/rs/zerolog v1.34.0
 	github.com/spf13/viper v1.20.1
 	go.opentelemetry.io/otel v1.37.0
