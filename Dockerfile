@@ -1,8 +1,8 @@
 FROM golang:1.25.1-alpine AS builder
 
-ARG UPX_VERSION=5.0.0-r0
+ARG UPX_VERSION=5.0.2-r0
 
-RUN apk update && apk add --no-cache ca-certificates upx=$UPX_VERSION tzdata && update-ca-certificates
+RUN apk update --no-cache && apk add --no-cache ca-certificates upx=$UPX_VERSION tzdata && update-ca-certificates
 
 WORKDIR /app
 
