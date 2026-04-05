@@ -2,72 +2,54 @@ package main
 
 import (
 	"context"
-	"errors"
-	"log"
 	"os"
 	"os/signal"
 
-	"github.com/orkarstoft/dns-updater/application"
-	"github.com/orkarstoft/dns-updater/config"
-	"github.com/orkarstoft/dns-updater/dns"
-	"github.com/orkarstoft/dns-updater/dns/providers/digitalocean"
-	"github.com/orkarstoft/dns-updater/dns/providers/gcp"
-	"github.com/orkarstoft/dns-updater/dns/tracing"
-	"github.com/orkarstoft/dns-updater/logger"
-	"github.com/rs/zerolog"
+	"github.com/orkarstoft/dns-updater/internal/adapters/cache"
+	_ "github.com/orkarstoft/dns-updater/internal/adapters/dns/digitalocean"
+	_ "github.com/orkarstoft/dns-updater/internal/adapters/dns/gcp"
+	"github.com/orkarstoft/dns-updater/internal/adapters/ip/myipdk"
+	"github.com/orkarstoft/dns-updater/internal/config"
+	"github.com/orkarstoft/dns-updater/internal/core/ports"
+	"github.com/orkarstoft/dns-updater/internal/core/service"
+	"github.com/orkarstoft/dns-updater/internal/logger"
+	"github.com/orkarstoft/dns-updater/internal/registry"
+	"github.com/rs/zerolog/log"
 )
 
 func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
 
-	config.LoadConfig()
-
-	loggerSvc, err := logger.New(config.Conf.Log.Type, config.Conf.Log.Level)
+	cfg, err := config.LoadConfig()
 	if err != nil {
-		// You can unwrap the error if needed
-		var logErr *logger.LoggerError
-		if errors.As(err, &logErr) {
-			log.Fatal("Logger operation '%s' failed: %v\n", logErr.Operation, logErr.Err)
+		log.Fatal().Err(err).Msg("Failed to load configuration")
+	}
+
+	logger.New(cfg.Log)
+
+	dnsAdapter, err := registry.GetDNSProvider(cfg.Provider)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to initialize DNS provider")
+	}
+
+	ipsvc := myipdk.New()
+
+	// Initialize the cache.
+	var cacheSvc ports.IPCache
+	if cfg.Cache.Enabled {
+		cacheSvc = cache.NewFileCache(cfg.Cache.FilePath)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to initialize file cache")
 		}
-		// Handle error appropriately
-		log.Fatal(err)
+	} else {
+		cacheSvc = cache.NewNoOpCache()
 	}
 
-	dnsProvider := getDNSProvider(loggerSvc)
+	updaterSvc := service.NewDDNSService(dnsAdapter, ipsvc, cacheSvc, &log.Logger)
 
-	options := application.Options{
-		Ctx:            ctx,
-		ProviderClient: dnsProvider,
-		Logger:         loggerSvc,
+	err = updaterSvc.Run(ctx, cfg.Updates)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to run DNS updater service")
 	}
-
-	if config.Conf.Tracing.GetBool("enabled") {
-		tracingService, shutdownTracer := tracing.NewService(ctx, dnsProvider)
-		defer shutdownTracer(ctx)
-
-		traceCtx, span := tracingService.Tracer().Start(ctx, "root")
-		defer span.End()
-
-		options.Ctx = traceCtx
-		options.Tracer = tracingService.Tracer()
-		options.ProviderClient = tracingService
-	}
-
-	service := application.New(options)
-
-	service.Run()
-}
-
-func getDNSProvider(logger *zerolog.Logger) dns.DNSImpl {
-	var dnsProvider dns.DNSImpl
-	switch config.Conf.Provider.GetString("name") {
-	case "googlecloudplatform":
-		dnsProvider = gcp.NewService(logger, config.Conf.Provider.GetString("projectId"), config.Conf.Provider.GetString("credentialsFile"))
-	case "digitalocean":
-		dnsProvider = digitalocean.NewService(logger, config.Conf.Provider.GetString("token"))
-	default:
-		logger.Fatal().Msg("No valid DNS provider specified in config file")
-	}
-	return dnsProvider
 }
