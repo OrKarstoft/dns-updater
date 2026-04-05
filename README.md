@@ -2,44 +2,71 @@
 
 A lightweight DNS record updater that supports multiple DNS providers (DigitalOcean and Google Cloud Platform) to automatically update DNS records with your current public IP address.
 
+## Documentation
+
+- Hosted documentation: https://orkarstoft.github.io/dns-updater
+- Docs source (Docusaurus): [`/docs`](./docs)
+
 ## Features
 
 - Supports multiple DNS providers:
   - DigitalOcean DNS
-  - Google Cloud Platform DNS
-- Automatic IP address detection
-- Docker support with minimal secure image
-- Configurable updates for multiple domains and records
-- YAML-based configuration
+  - Google Cloud DNS (GCP)
+- Automatic public IP address detection
+- Optional caching to avoid unnecessary DNS updates (file cache)
+- YAML-based configuration (`config.yaml`)
+- Docker support with a minimal, secure image
+- Configurable logging:
+  - `pretty`, `json`, or `file`
 
 ## Installation
 
 ### Using Docker (Recommended)
 
 Pull the latest version from GitHub Container Registry:
+
 ```bash
 docker pull ghcr.io/orkarstoft/dns-updater:latest
 ```
 
-
 ### From source
 
-1. Clone the repository:
 ```bash
-git clone https://github.com/orkarstoft/dns-updater.git
+git clone https://github.com/OrKarstoft/dns-updater.git
 cd dns-updater
-```
-
-2. Build the binary:
-```bash
 go build -o dnsupdater cmd/main.go
 ```
 
 ## Configuration
 
-Create a `config.yaml` file with your DNS provider credentials and update configuration:
+`dns-updater` expects a `config.yaml` in the **current working directory** (it looks for `config.yaml` via Viper using config name `config`).
 
-### DigitalOcean Example:
+### Provider configuration
+
+Providers are selected via:
+
+```yaml
+provider:
+  name: <providerName>
+  config:
+    # provider-specific keys here
+```
+
+Supported provider names on this branch:
+
+- `digitalocean`
+- `googlecloudplatform`
+
+### Update configuration
+
+Updates are configured under `updates` as a list. Each item includes:
+
+- `domain`: domain name (e.g. `example.com`)
+- `zone`: provider zone identifier (provider-specific)
+- `type`: record type (e.g. `A`)
+- `records`: list of record names (e.g. `"@"`, `www`, etc.)
+
+#### DigitalOcean example
 
 ```yaml
 provider:
@@ -52,11 +79,11 @@ updates:
     zone: example-com
     type: A
     records:
-    - "@" # Set the root level record, so example.com
-    - record1 # Set the subdomain record, so record1.example.com
+      - "@" # Root record => example.com
+      - record1 # Subdomain => record1.example.com
 ```
 
-### Google Cloud Platform Example:
+#### Google Cloud DNS example
 
 ```yaml
 provider:
@@ -69,25 +96,36 @@ updates:
   - domain: example.com
     zone: example-com
     type: "A"
-    records: 
-    - record1
-    - record2
+    records:
+      - record1
+      - record2
 ```
 
-### Tracing Example:
+### Cache configuration (optional)
+
+This branch supports a simple file cache to persist the last observed IP and skip updates when it hasn’t changed:
+
 ```yaml
-tracing:
+cache:
   enabled: true
-  host: dns-updater-jaeger-1 # This would be the hostname when running with docker compose
-  port: 4317
-  allowInsecure: true
+  filePath: "dns-updater.cache"
 ```
 
-### Logging Example:
+If `cache.enabled` is `false`, a no-op cache is used.
+
+### Logging configuration
+
+Logging defaults to:
+
+- `log.level: info`
+- `log.type: pretty`
+
+You can override with:
+
 ```yaml
 log:
-  level: debug # info, warning, debug
-  type: pretty # json, pretty, file (app.log)
+  level: debug # info, warning, debug (as supported by the logger)
+  type: pretty # pretty, json, file
 ```
 
 ## Usage
@@ -98,7 +136,10 @@ log:
 docker run -v /path/to/config.yaml:/config.yaml ghcr.io/orkarstoft/dns-updater:latest
 ```
 
+> Note: the application looks for `config.yaml` in the working directory. Ensure the container’s working directory and mount path align with how the image is built/run.
+
 For GCP authentication, mount your credentials file:
+
 ```bash
 docker run -v /path/to/config.yaml:/config.yaml \
           -v /path/to/credentials.json:/credentials.json \
@@ -107,28 +148,19 @@ docker run -v /path/to/config.yaml:/config.yaml \
 
 ### Running from binary
 
+Place `config.yaml` next to the binary (or run from the directory containing it):
+
 ```bash
-./dns-updater
+./dnsupdater
 ```
 
 ## Development
 
 ### Prerequisites
 
-- Go 1.23 or higher
+- Go (per `go.mod`)
 - Docker (for container builds)
-
-### Building
-
-Build the binary:
-```bash
-go build -o dnsupdater cmd/main.go
-```
-
-Build the Docker image:
-```bash
-docker build -t dns-updater .
-```
+- Node.js >= 20 (only needed for `/docs`)
 
 ### Testing
 
@@ -138,24 +170,17 @@ go test ./...
 
 ## Contributing
 
-1. Fork the repository
-2. Create your feature branch (git checkout -b feature/amazing-feature)
-3. Commit your changes (git commit -m 'Add some amazing feature')
-4. Push to the branch (git push origin feature/amazing-feature)
-5. Open a Pull Request
+See [`CONTRIBUTING.md`](./CONTRIBUTING.md).
 
 ## Security
 
-- The Docker image runs as a non-root user
-- Credentials should be properly secured and never committed to version control
-- For production use, store sensitive configuration in secure locations
+- The Docker image runs as a non-root user (per project intent)
+- Never commit provider credentials (tokens, service account JSON files)
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License - see [`LICENSE.md`](./LICENSE.md).
 
 ## Acknowledgments
 
-- Uses the [godo](https://github.com/digitalocean/godo) client for DigitalOcean API 
-- Uses the Google Cloud DNS API for GCP integration
-
+- Uses the [godo](https://github.com/digitalocean)

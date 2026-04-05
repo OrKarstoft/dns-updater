@@ -1,41 +1,60 @@
-# Website
+# Documentation site (Docusaurus)
 
-This website is built using [Docusaurus](https://docusaurus.io/), a modern static website generator.
+The hosted documentation for `dns-updater` is available at:
 
-## Installation
+- https://orkarstoft.github.io/dns-updater
+
+This folder contains the source for that documentation website, built with [Docusaurus](https://docusaurus.io/).
+
+## Structure
+
+- `docs/` (this directory): Docusaurus project root
+- `docs/docs/`: Documentation content (Markdown/MDX)
+- `docs/static/`: Static assets served as-is
+- `docs/src/`: Docusaurus theme/components customizations
+- `docs/docusaurus.config.ts`: Site configuration
+- `docs/sidebars.ts`: Sidebar configuration
+
+## Prerequisites
+
+- **Node.js >= 20** (as required by `package.json`)
+- npm (recommended here because a `package-lock.json` is committed)
+
+## Install
+
+From the repository root:
 
 ```bash
-yarn
+cd docs
+npm ci
 ```
 
-## Local Development
+## Local development
 
 ```bash
-yarn start
+cd docs
+npm run start
 ```
 
-This command starts a local development server and opens up a browser window. Most changes are reflected live without having to restart the server.
+This starts the local dev server (by default at http://localhost:3000). Changes in `docs/docs/*` are reflected live.
 
 ## Build
 
 ```bash
-yarn build
+cd docs
+npm run build
 ```
 
-This command generates static content into the `build` directory and can be served using any static contents hosting service.
+Build output is generated into `docs/build`.
 
-## Deployment
-
-Using SSH:
+## Serve the production build locally
 
 ```bash
-USE_SSH=true yarn deploy
+cd docs
+npm run serve
 ```
 
-Not using SSH:
+## Notes
 
-```bash
-GIT_USER=<Your GitHub username> yarn deploy
-```
-
-If you are using GitHub pages for hosting, this command is a convenient way to build the website and push to the `gh-pages` branch.
+- The content currently in `docs/docs/*` includes the default Docusaurus tutorial pages (for example `docs/docs/intro.md`). Replace or remove these as you add real project documentation.
+- If you prefer Yarn, you can use it, but keep in mind this repository currently includes `package-lock.json`, so `npm ci` will produce the most reproducible installs.
