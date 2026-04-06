@@ -8,6 +8,7 @@ import (
 	"github.com/orkarstoft/dns-updater/internal/adapters/cache"
 	_ "github.com/orkarstoft/dns-updater/internal/adapters/dns/digitalocean"
 	_ "github.com/orkarstoft/dns-updater/internal/adapters/dns/gcp"
+	_ "github.com/orkarstoft/dns-updater/internal/adapters/dns/simply"
 	"github.com/orkarstoft/dns-updater/internal/adapters/ip/myipdk"
 	"github.com/orkarstoft/dns-updater/internal/config"
 	"github.com/orkarstoft/dns-updater/internal/core/ports"
