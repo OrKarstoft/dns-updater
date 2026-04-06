@@ -2,6 +2,9 @@
 title: Google Cloud DNS (GCP)
 ---
 
+> [!WARNING]
+> Google Cloud DNS provider is untested since release 3.0.0. Use with caution and report any issues you encounter.
+
 # Provider: Google Cloud DNS (GCP)
 
 To use Google Cloud DNS, set:
