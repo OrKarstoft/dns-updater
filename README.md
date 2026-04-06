@@ -52,7 +52,7 @@ provider:
     # provider-specific keys here
 ```
 
-Supported provider names on this branch:
+Supported providers available:
 
 - `digitalocean`
 - `googlecloudplatform`
