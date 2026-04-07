@@ -92,5 +92,3 @@ func (p Provider) GetInt(s string) int {
 func (p Provider) GetBool(s string) bool {
 	return viper.GetBool(fmt.Sprintf("provider.config.%s", s))
 }
-ig.%s", s))
-}
