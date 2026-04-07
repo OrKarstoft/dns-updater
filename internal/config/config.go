@@ -16,7 +16,7 @@ type Config struct {
 
 type Provider struct {
 	Name     string         `mapstructure:"name"`
-	SafeMode bool           `mapstructure:"safe_mode"`
+	SafeMode bool           `mapstructure:"safemode"`
 	Config   map[string]any `mapstructure:"config"`
 }
 
@@ -85,10 +85,12 @@ func (p Provider) GetString(s string) string {
 	return viper.GetString(fmt.Sprintf("provider.config.%s", s))
 }
 
-func (p Provider) GetInt(i int) int {
-	return viper.GetInt(fmt.Sprintf("provider.config.%d", i)) // fixed %s to %d for int
+func (p Provider) GetInt(s string) int {
+	return viper.GetInt(fmt.Sprintf("provider.config.%s", s))
 }
 
 func (p Provider) GetBool(s string) bool {
 	return viper.GetBool(fmt.Sprintf("provider.config.%s", s))
+}
+ig.%s", s))
 }

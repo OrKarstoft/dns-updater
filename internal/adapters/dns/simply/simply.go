@@ -182,5 +182,3 @@ func toDNSRecords(rs []SimplyRecord) []ports.DNSRecord {
 	}
 	return records
 }
-
-

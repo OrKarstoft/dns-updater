@@ -68,7 +68,7 @@ func (p *Provider) UpdateRecord(ctx context.Context, zone, domain, recordID stri
 		return err
 	}
 
-	oldRecord := findMatchingRecord(records, recordID, "")
+	oldRecord := findRecordByID(records, recordID)
 	if oldRecord == nil {
 		return fmt.Errorf("could not find record with id %s to update", recordID)
 	}
@@ -97,7 +97,7 @@ func (p *Provider) DeleteRecord(ctx context.Context, zone, domain, recordID stri
 		return err
 	}
 
-	recordToDelete := findMatchingRecord(records, recordID, "")
+	recordToDelete := findRecordByID(records, recordID)
 	if recordToDelete == nil {
 		return fmt.Errorf("could not find record with id %s to delete", recordID)
 	}
@@ -110,10 +110,6 @@ func (p *Provider) DeleteRecord(ctx context.Context, zone, domain, recordID stri
 	_, err = p.client.Changes.Create(p.projectId, zone, change).Do()
 	return err
 }
-
-
-
-
 
 func toDNSRecord(r googledns.ResourceRecordSet) ports.DNSRecord {
 	return ports.DNSRecord{
@@ -142,4 +138,13 @@ func toResourceRecordSet(r ports.DNSRecord) googledns.ResourceRecordSet {
 		Rrdatas: []string{r.Data},
 		Ttl:     int64(r.TTL),
 	}
+}
+
+func findRecordByID(records []ports.DNSRecord, id string) *ports.DNSRecord {
+	for i := range records {
+		if records[i].ID == id {
+			return &records[i]
+		}
+	}
+	return nil
 }
