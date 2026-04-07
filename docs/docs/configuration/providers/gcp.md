@@ -34,5 +34,4 @@ updates:
 ## Notes
 
 - The credentials file must be readable by the process/container.
-- Record creation and updates are governed by the global `safeMode` setting. See [General Configuration](./general.md) for more details.
-
+- Record creation and updates are governed by the global `safemode` setting. See [General Configuration](./general.md) for more details.
