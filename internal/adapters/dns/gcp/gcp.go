@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/netip"
+	"strings"
 
 	"github.com/orkarstoft/dns-updater/internal/config"
 	"github.com/orkarstoft/dns-updater/internal/core/ports"
@@ -35,94 +36,112 @@ func NewFromConfig(cfg config.Provider) (ports.DNSProvider, error) {
 	}, nil
 }
 
-func (p *Provider) UpdateRecord(ctx context.Context, zone, domain, recordName, recordType string, ip *netip.Addr) error {
-	fullRecordName := fmt.Sprintf("%s.%s.", domain, zone)
-
-	// If the record name is @, it means the root domain
-	if domain == "@" {
-		fullRecordName = fmt.Sprintf("%s.", domain)
-	}
-
-	records, err := p.listRecords(p.projectId, zone)
-	if err != nil {
-		return err
-	}
-
-	recordToUpdate := findMatchingRecord(records, fullRecordName, recordType)
-	if recordToUpdate == nil {
-		log.Debug().Msgf("Record %s not found in zone %s, creating new record", fullRecordName, zone)
-		if err := p.createDNSRecord(p.projectId, zone, recordType, ip, fullRecordName); err != nil {
-			return err
-		}
-		return nil
-	}
-
-	if recordToUpdate.Rrdatas[0] == ip.String() {
-		log.Debug().Msg("Record is already up to date")
-		return nil
-	}
-
-	if err := p.updateDNSRecord(p.projectId, zone, recordToUpdate, ip, fullRecordName); err != nil {
-		return err
-	}
-
-	log.Debug().Msg("Record updated")
-	return nil
-}
-
-func (p *Provider) listRecords(projectID, zone string) ([]*googledns.ResourceRecordSet, error) {
-	resp, err := p.client.ResourceRecordSets.List(projectID, zone).Do()
+func (p *Provider) GetRecords(ctx context.Context, zone, domain string) ([]ports.DNSRecord, error) {
+	resp, err := p.client.ResourceRecordSets.List(p.projectId, zone).Do()
 	if err != nil {
 		return nil, err
 	}
-	return resp.Rrsets, nil
+	return toDNSRecords(resp.Rrsets), nil
 }
 
-func findMatchingRecord(records []*googledns.ResourceRecordSet, name, recordType string) *googledns.ResourceRecordSet {
-	for _, record := range records {
-		if record.Name == name && record.Type == recordType {
-			return record
-		}
-	}
-	return nil
-}
-
-func (p *Provider) updateDNSRecord(projectID, zone string, oldRecord *googledns.ResourceRecordSet, ip *netip.Addr, fullRecordName string) error {
+func (p *Provider) CreateRecord(ctx context.Context, zone, domain string, record ports.DNSRecord) (ports.DNSRecord, error) {
 	newRecord := &googledns.ResourceRecordSet{
-		Name:    fullRecordName,
-		Type:    oldRecord.Type,
-		Ttl:     oldRecord.Ttl, // Preserve TTL
-		Rrdatas: []string{ip.String()},
+		Name:    record.Name,
+		Type:    record.Type,
+		Ttl:     int64(record.TTL),
+		Rrdatas: []string{record.Data},
 	}
-
-	change := &googledns.Change{
-		Additions: []*googledns.ResourceRecordSet{newRecord},
-		Deletions: []*googledns.ResourceRecordSet{oldRecord},
-	}
-
-	_, err := p.client.Changes.Create(projectID, zone, change).Do()
+	_, err := p.client.ResourceRecordSets.Create(p.projectId, zone, newRecord).Do()
 	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (p *Provider) createDNSRecord(projectID, zone, recordType string, ip *netip.Addr, fullRecordName string) error {
-	newRecord := &googledns.ResourceRecordSet{
-		Name:    fullRecordName,
-		Type:    recordType,
-		Ttl:     300, // Default TTL
-		Rrdatas: []string{ip.String()},
-	}
-	_, err := p.client.ResourceRecordSets.Create(projectID, zone, newRecord).Do()
-	if err != nil {
-		return err
+		return ports.DNSRecord{}, err
 	}
 	log.Debug().
 		Str("name", newRecord.Name).
 		Str("type", newRecord.Type).
-		Str("ip", ip.String()).
+		Str("data", record.Data).
 		Str("zone", zone).
 		Msg("Record created")
-	return nil
+	return toDNSRecord(*newRecord), nil
+}
+
+func (p *Provider) UpdateRecord(ctx context.Context, zone, domain, recordID string, record ports.DNSRecord) error {
+	records, err := p.GetRecords(ctx, zone, domain)
+	if err != nil {
+		return err
+	}
+
+	oldRecord := findMatchingRecord(records, recordID, "")
+	if oldRecord == nil {
+		return fmt.Errorf("could not find record with id %s to update", recordID)
+	}
+
+	godoOldRecord := toResourceRecordSet(*oldRecord)
+
+	newRecord := &googledns.ResourceRecordSet{
+		Name:    oldRecord.Name,
+		Type:    oldRecord.Type,
+		Ttl:     int64(record.TTL),
+		Rrdatas: []string{record.Data},
+	}
+
+	change := &googledns.Change{
+		Additions: []*googledns.ResourceRecordSet{newRecord},
+		Deletions: []*googledns.ResourceRecordSet{&godoOldRecord},
+	}
+
+	_, err = p.client.Changes.Create(p.projectId, zone, change).Do()
+	return err
+}
+
+func (p *Provider) DeleteRecord(ctx context.Context, zone, domain, recordID string) error {
+	records, err := p.GetRecords(ctx, zone, domain)
+	if err != nil {
+		return err
+	}
+
+	recordToDelete := findMatchingRecord(records, recordID, "")
+	if recordToDelete == nil {
+		return fmt.Errorf("could not find record with id %s to delete", recordID)
+	}
+	godoRecordToDelete := toResourceRecordSet(*recordToDelete)
+
+	change := &googledns.Change{
+		Deletions: []*googledns.ResourceRecordSet{&godoRecordToDelete},
+	}
+
+	_, err = p.client.Changes.Create(p.projectId, zone, change).Do()
+	return err
+}
+
+
+
+
+
+func toDNSRecord(r googledns.ResourceRecordSet) ports.DNSRecord {
+	return ports.DNSRecord{
+		ID:   fmt.Sprintf("%s:%s", r.Name, r.Type),
+		Name: r.Name,
+		Type: r.Type,
+		Data: r.Rrdatas[0],
+		TTL:  int(r.Ttl),
+	}
+}
+
+func toDNSRecords(rs []*googledns.ResourceRecordSet) []ports.DNSRecord {
+	records := make([]ports.DNSRecord, 0, len(rs))
+	for _, r := range rs {
+		if len(r.Rrdatas) > 0 {
+			records = append(records, toDNSRecord(*r))
+		}
+	}
+	return records
+}
+
+func toResourceRecordSet(r ports.DNSRecord) googledns.ResourceRecordSet {
+	return googledns.ResourceRecordSet{
+		Name:    r.Name,
+		Type:    r.Type,
+		Rrdatas: []string{r.Data},
+		Ttl:     int64(r.TTL),
+	}
 }

@@ -47,7 +47,7 @@ func main() {
 		cacheSvc = cache.NewNoOpCache()
 	}
 
-	updaterSvc := service.NewDDNSService(dnsAdapter, ipsvc, cacheSvc, &log.Logger)
+	updaterSvc := service.NewDDNSService(dnsAdapter, ipsvc, cacheSvc, &log.Logger, cfg.Provider.SafeMode)
 
 	err = updaterSvc.Run(ctx, cfg.Updates)
 	if err != nil {
