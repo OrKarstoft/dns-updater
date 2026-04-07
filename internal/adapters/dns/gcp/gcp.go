@@ -3,8 +3,6 @@ package gcp
 import (
 	"context"
 	"fmt"
-	"net/netip"
-	"strings"
 
 	"github.com/orkarstoft/dns-updater/internal/config"
 	"github.com/orkarstoft/dns-updater/internal/core/ports"

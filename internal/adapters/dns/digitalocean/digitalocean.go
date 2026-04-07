@@ -3,7 +3,6 @@ package digitalocean
 import (
 	"context"
 	"fmt"
-	"net/netip"
 	"strconv"
 
 	"github.com/digitalocean/godo"
@@ -87,10 +86,6 @@ func (p *Provider) DeleteRecord(ctx context.Context, zone, domain, recordID stri
 	_, err = p.client.Domains.DeleteRecord(ctx, domain, id)
 	return err
 }
-
-
-
-
 
 func toDNSRecord(r godo.DomainRecord) ports.DNSRecord {
 	return ports.DNSRecord{

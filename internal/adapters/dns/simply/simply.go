@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/netip"
 	"strconv"
 	"strings"
 
@@ -165,8 +164,6 @@ func (p *Provider) DeleteRecord(ctx context.Context, zone, domain, recordID stri
 	}
 	return nil
 }
-
-
 
 func toDNSRecord(r SimplyRecord) ports.DNSRecord {
 	return ports.DNSRecord{
