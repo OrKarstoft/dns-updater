@@ -54,7 +54,7 @@ func LoadConfig() (*Config, error) {
 	// Default config
 	viper.SetDefault("log.level", "info")
 	viper.SetDefault("log.type", "pretty")
-	viper.SetDefault("provider.safe_mode", true)
+	viper.SetDefault("provider.safemode", true)
 
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
