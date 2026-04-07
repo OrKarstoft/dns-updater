@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/netip"
+	"strconv"
 	"strings"
 
 	"github.com/orkarstoft/dns-updater/internal/config"
@@ -58,7 +58,7 @@ func NewFromConfig(cfg config.Provider) (ports.DNSProvider, error) {
 	}, nil
 }
 
-func (p *Provider) doRequest(ctx context.Context, method, path string, body interface{}) ([]byte, error) {
+func (p *Provider) doRequest(ctx context.Context, method, path string, body any) ([]byte, error) {
 	var bodyReader io.Reader
 	if body != nil {
 		jsonBody, err := json.Marshal(body)
@@ -96,37 +96,7 @@ func (p *Provider) doRequest(ctx context.Context, method, path string, body inte
 	return respBody, nil
 }
 
-func (p *Provider) UpdateRecord(ctx context.Context, zone, domain, recordName, recordType string, ip *netip.Addr) error {
-	records, err := p.getRecords(ctx, domain)
-	if err != nil {
-		return err
-	}
-	log.Debug().Msgf("Found %d records in domain %s", len(records), domain)
-
-	record := findMatchingRecord(records, recordType, recordName)
-	if record == nil {
-		log.Debug().Msgf("Record %s not found in zone %s, creating new record", fmt.Sprintf("%s.%s", recordName, domain), zone)
-		if err := p.createDNSRecord(ctx, recordType, recordName, domain, zone, ip); err != nil {
-			return err
-		}
-		return nil
-	}
-
-	log.Debug().Msgf("Record %s found in zone %s, updating record", fmt.Sprintf("%s.%s", recordName, domain), zone)
-	if record.Data == ip.String() {
-		log.Debug().Msg("Record already up to date")
-		return nil
-	}
-
-	if err := p.updateDNSRecord(ctx, domain, ip, record.ID); err != nil {
-		return err
-	}
-
-	log.Debug().Msg("Record updated")
-	return nil
-}
-
-func (p *Provider) getRecords(ctx context.Context, domain string) ([]SimplyRecord, error) {
+func (p *Provider) GetRecords(ctx context.Context, zone, domain string) ([]ports.DNSRecord, error) {
 	path := fmt.Sprintf("/my/products/%s/dns/records", domain)
 	respBody, err := p.doRequest(ctx, http.MethodGet, path, nil)
 	if err != nil {
@@ -135,30 +105,48 @@ func (p *Provider) getRecords(ctx context.Context, domain string) ([]SimplyRecor
 
 	var parsedResp recordsResponse
 	if err := json.Unmarshal(respBody, &parsedResp); err != nil {
-		// Fallback for flat array response in case the API spec differs slightly
 		var flatRecords []SimplyRecord
 		if err2 := json.Unmarshal(respBody, &flatRecords); err2 == nil {
-			return flatRecords, nil
+			return toDNSRecords(flatRecords), nil
 		}
 		return nil, fmt.Errorf("failed to parse simply API response: %w", err)
 	}
 
-	return parsedResp.Records, nil
+	return toDNSRecords(parsedResp.Records), nil
 }
 
-func findMatchingRecord(records []SimplyRecord, recordType, recordName string) *SimplyRecord {
-	for i := range records {
-		if records[i].Name == recordName && records[i].Type == recordType {
-			return &records[i]
-		}
+func (p *Provider) CreateRecord(ctx context.Context, zone, domain string, record ports.DNSRecord) (ports.DNSRecord, error) {
+	path := fmt.Sprintf("/my/products/%s/dns/records", domain)
+	createReq := SimplyRecord{
+		Name: record.Name,
+		Type: record.Type,
+		Data: record.Data,
+		TTL:  record.TTL,
 	}
-	return nil
+
+	respBody, err := p.doRequest(ctx, http.MethodPost, path, createReq)
+	if err != nil {
+		return ports.DNSRecord{}, fmt.Errorf("failed to create simply DNS record: %w", err)
+	}
+
+	var createdRecord SimplyRecord
+	if err := json.Unmarshal(respBody, &createdRecord); err != nil {
+		return ports.DNSRecord{}, fmt.Errorf("failed to parse simply API response: %w", err)
+	}
+
+	log.Debug().
+		Str("name", record.Name).
+		Str("type", record.Type).
+		Str("data", record.Data).
+		Str("domain", domain).
+		Msg("Record created")
+	return toDNSRecord(createdRecord), nil
 }
 
-func (p *Provider) updateDNSRecord(ctx context.Context, domain string, ip *netip.Addr, recordID int) error {
-	path := fmt.Sprintf("/my/products/%s/dns/records/%d", domain, recordID)
+func (p *Provider) UpdateRecord(ctx context.Context, zone, domain, recordID string, record ports.DNSRecord) error {
+	path := fmt.Sprintf("/my/products/%s/dns/records/%s", domain, recordID)
 	updateReq := SimplyRecord{
-		Data: ip.String(),
+		Data: record.Data,
 	}
 
 	_, err := p.doRequest(ctx, http.MethodPut, path, updateReq)
@@ -168,25 +156,29 @@ func (p *Provider) updateDNSRecord(ctx context.Context, domain string, ip *netip
 	return nil
 }
 
-func (p *Provider) createDNSRecord(ctx context.Context, recordType, recordName, domain, zone string, ip *netip.Addr) error {
-	path := fmt.Sprintf("/my/products/%s/dns/records", domain)
-	createReq := SimplyRecord{
-		Name: recordName,
-		Type: recordType,
-		Data: ip.String(),
-		TTL:  3600,
-	}
-
-	_, err := p.doRequest(ctx, http.MethodPost, path, createReq)
+func (p *Provider) DeleteRecord(ctx context.Context, zone, domain, recordID string) error {
+	path := fmt.Sprintf("/my/products/%s/dns/records/%s", domain, recordID)
+	_, err := p.doRequest(ctx, http.MethodDelete, path, nil)
 	if err != nil {
-		return fmt.Errorf("failed to create simply DNS record: %w", err)
+		return fmt.Errorf("failed to delete simply DNS record: %w", err)
 	}
-
-	log.Debug().
-		Str("name", recordName).
-		Str("type", recordType).
-		Str("ip", ip.String()).
-		Str("zone", zone).
-		Msg("Record created")
 	return nil
+}
+
+func toDNSRecord(r SimplyRecord) ports.DNSRecord {
+	return ports.DNSRecord{
+		ID:   strconv.Itoa(r.ID),
+		Name: r.Name,
+		Type: r.Type,
+		Data: r.Data,
+		TTL:  r.TTL,
+	}
+}
+
+func toDNSRecords(rs []SimplyRecord) []ports.DNSRecord {
+	records := make([]ports.DNSRecord, len(rs))
+	for i, r := range rs {
+		records[i] = toDNSRecord(r)
+	}
+	return records
 }

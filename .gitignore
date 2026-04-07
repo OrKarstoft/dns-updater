@@ -1,4 +1,5 @@
-config.yaml
+config*.yaml
+config*.yml
 config.yml
 serviceaccount.json
 cache

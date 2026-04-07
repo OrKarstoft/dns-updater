@@ -15,8 +15,9 @@ type Config struct {
 }
 
 type Provider struct {
-	Name   string         `mapstructure:"name"`
-	Config map[string]any `mapstructure:"config"`
+	Name     string         `mapstructure:"name"`
+	SafeMode bool           `mapstructure:"safemode"`
+	Config   map[string]any `mapstructure:"config"`
 }
 
 type Update struct {
@@ -53,6 +54,7 @@ func LoadConfig() (*Config, error) {
 	// Default config
 	viper.SetDefault("log.level", "info")
 	viper.SetDefault("log.type", "pretty")
+	viper.SetDefault("provider.safemode", true)
 
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
@@ -83,8 +85,8 @@ func (p Provider) GetString(s string) string {
 	return viper.GetString(fmt.Sprintf("provider.config.%s", s))
 }
 
-func (p Provider) GetInt(i int) int {
-	return viper.GetInt(fmt.Sprintf("provider.config.%d", i)) // fixed %s to %d for int
+func (p Provider) GetInt(s string) int {
+	return viper.GetInt(fmt.Sprintf("provider.config.%s", s))
 }
 
 func (p Provider) GetBool(s string) bool {

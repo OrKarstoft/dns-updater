@@ -34,4 +34,4 @@ updates:
 ## Notes
 
 - The credentials file must be readable by the process/container.
-- If a record does not exist, the provider creates it. If it exists and differs, it updates it.
+- Record creation and updates are governed by the global `safemode` setting. See [General Configuration](./general.md) for more details.
