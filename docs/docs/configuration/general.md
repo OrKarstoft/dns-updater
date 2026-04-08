@@ -13,6 +13,7 @@ sidebar_position: 1
 - `updates` (required): list of DNS updates to apply
 - `log` (optional): logging configuration (defaults: `info` + `pretty`)
 - `cache` (optional): enable/disable simple caching and configure cache file path
+- `schedule` (optional): a cron expression to run the DNS check on a schedule (e.g. `"*/5 * * * *"` for every 5 minutes).
 - `safemode` (optional): enable/disable safe mode (defaults to `true`). When enabled, `dns-updater` will only update A records if a corresponding TXT record with the value `managed-by-dns-updater` exists. This prevents accidental updates to records not managed by `dns-updater`.
 
 ## Updates

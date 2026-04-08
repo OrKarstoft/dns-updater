@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/signal"
 
+	"github.com/go-co-op/gocron/v2"
 	"github.com/orkarstoft/dns-updater/internal/adapters/cache"
 	_ "github.com/orkarstoft/dns-updater/internal/adapters/dns/digitalocean"
 	_ "github.com/orkarstoft/dns-updater/internal/adapters/dns/gcp"
@@ -40,17 +41,51 @@ func main() {
 	var cacheSvc ports.IPCache
 	if cfg.Cache.Enabled {
 		cacheSvc = cache.NewFileCache(cfg.Cache.FilePath)
-		if err != nil {
-			log.Fatal().Err(err).Msg("Failed to initialize file cache")
-		}
 	} else {
 		cacheSvc = cache.NewNoOpCache()
 	}
 
 	updaterSvc := service.NewDDNSService(dnsAdapter, ipsvc, cacheSvc, &log.Logger, cfg.Provider.SafeMode)
 
-	err = updaterSvc.Run(ctx, cfg.Updates)
-	if err != nil {
+	if cfg.Schedule != "" {
+		runScheduled(ctx, updaterSvc, cfg)
+	} else {
+		runOnce(ctx, updaterSvc, cfg)
+	}
+}
+
+func runOnce(ctx context.Context, updaterSvc *service.DNSService, cfg *config.Config) {
+	if err := updaterSvc.Run(ctx, cfg.Updates); err != nil {
 		log.Fatal().Err(err).Msg("Failed to run DNS updater service")
+	}
+	log.Info().Msg("DNS update complete")
+}
+
+func runScheduled(ctx context.Context, updaterSvc *service.DNSService, cfg *config.Config) {
+	s, err := gocron.NewScheduler()
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to create scheduler")
+	}
+	_, err = s.NewJob(
+		gocron.CronJob(cfg.Schedule, false),
+		gocron.NewTask(func() {
+			if err := updaterSvc.Run(ctx, cfg.Updates); err != nil {
+				log.Error().Err(err).Msg("Failed to run DNS updater service")
+			}
+		}),
+	)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to create job")
+	}
+
+	s.Start()
+	log.Info().Msgf("Scheduler started with schedule: %s", cfg.Schedule)
+
+	// Block until the context is cancelled.
+	<-ctx.Done()
+
+	log.Info().Msg("Shutting down scheduler")
+	if err := s.Shutdown(); err != nil {
+		log.Error().Err(err).Msg("Failed to shutdown scheduler")
 	}
 }

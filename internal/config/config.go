@@ -12,6 +12,7 @@ type Config struct {
 	Updates  []Update
 	Log      Log
 	Cache    Cache
+	Schedule string `mapstructure:"schedule"`
 }
 
 type Provider struct {
