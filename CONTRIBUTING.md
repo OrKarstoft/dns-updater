@@ -10,6 +10,10 @@ Thank you for considering contributing to dns-updater! This is a simple guide to
 4. Test your changes
 5. Submit a Pull Request
 
+## Adding a New Provider
+
+If you want to add a new DNS provider, please read our detailed guide on [how to add a new provider](./docs/docs/contributing/adding-a-provider.md).
+
 ## Guidelines
 
 ### Code Style
