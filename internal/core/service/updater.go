@@ -149,3 +149,56 @@ func findMatchingRecord(records []ports.DNSRecord, recordType, recordName string
 	}
 	return nil
 }
+
+func (s *DNSService) Clean(ctx context.Context, cfg []config.Update) error {
+	s.logger.Info().Msg("starting DNS cleanup")
+
+	for _, updateCfg := range cfg {
+		for _, recordName := range updateCfg.Records {
+			if err := s.cleanRecord(ctx, updateCfg.Zone, updateCfg.Domain, recordName, updateCfg.Type); err != nil {
+				s.logger.Error().Err(err).Str("domain", updateCfg.Domain).Msg("failed to clean record")
+				continue
+			}
+			s.logger.Info().Str("record", fmt.Sprintf("%s.%s", recordName, updateCfg.Domain)).Msg("successfully cleaned DNS record")
+		}
+	}
+
+	return nil
+}
+
+func (s *DNSService) cleanRecord(ctx context.Context, zone, domain, recordName, recordType string) error {
+	records, err := s.dns.GetRecords(ctx, zone, domain)
+	if err != nil {
+		return err
+	}
+
+	safemodeRecordName := fmt.Sprintf("%s%s", s.safeMode.TxtPrefix, recordName)
+	safemodeRecordData := fmt.Sprintf("managed-by:dns-updater/%s", s.safeMode.TxtOwnerId)
+	safemodeRecord := findMatchingRecord(records, "TXT", safemodeRecordName)
+	record := findMatchingRecord(records, recordType, recordName)
+
+	fullRecordName := fmt.Sprintf("%s.%s", recordName, domain)
+
+	if safemodeRecord == nil {
+		s.logger.Debug().Msgf("No safemode TXT record found for %s, nothing to clean", fullRecordName)
+		return nil
+	}
+
+	if safemodeRecord.Data != safemodeRecordData {
+		return fmt.Errorf("safemode TXT record for %s does not match expected ownership, refusing to clean", fullRecordName)
+	}
+
+	if record != nil {
+		s.logger.Debug().Msgf("Deleting record %s in zone %s", fullRecordName, zone)
+		if err := s.dns.DeleteRecord(ctx, zone, domain, record.ID); err != nil {
+			return fmt.Errorf("failed to delete record %s: %w", fullRecordName, err)
+		}
+	}
+
+	s.logger.Debug().Msgf("Deleting safemode TXT record for %s in zone %s", fullRecordName, zone)
+	if err := s.dns.DeleteRecord(ctx, zone, domain, safemodeRecord.ID); err != nil {
+		return fmt.Errorf("failed to delete safemode TXT record for %s: %w", fullRecordName, err)
+	}
+
+	return nil
+}

@@ -47,6 +47,13 @@ func main() {
 
 	updaterSvc := service.NewDDNSService(dnsAdapter, ipsvc, cacheSvc, &log.Logger, cfg.Provider.SafeMode)
 
+	// If arg is --clean then re run a delete funciton
+	if len(os.Args) > 1 && os.Args[1] == "--clean" {
+		log.Info().Msg("Running in clean mode, deleting all records")
+		runClean(ctx, updaterSvc, cfg)
+		return
+	}
+
 	if cfg.Schedule != "" {
 		runScheduled(ctx, updaterSvc, cfg)
 	} else {
@@ -88,4 +95,11 @@ func runScheduled(ctx context.Context, updaterSvc *service.DNSService, cfg *conf
 	if err := s.Shutdown(); err != nil {
 		log.Error().Err(err).Msg("Failed to shutdown scheduler")
 	}
+}
+
+func runClean(ctx context.Context, updaterSvc *service.DNSService, cfg *config.Config) {
+	if err := updaterSvc.Clean(ctx, cfg.Updates); err != nil {
+		log.Fatal().Err(err).Msg("Failed to run DNS updater service in clean mode")
+	}
+	log.Info().Msg("DNS clean complete")
 }
