@@ -16,9 +16,22 @@ type Config struct {
 }
 
 type Provider struct {
-	Name     string         `mapstructure:"name"`
-	SafeMode bool           `mapstructure:"safemode"`
+	Name     string `mapstructure:"name"`
+	SafeMode SafeMode
 	Config   map[string]any `mapstructure:"config"`
+}
+
+type SafeMode struct {
+	// If enabled, dns-updater will only update DNS records where a matching TXT record is found with the correct ownership identifier. This provides an extra layer of safety to prevent accidental updates.
+	// Default: true
+	Enabled bool `mapstructure:"enabled"`
+	// Identifier for the TXT record used to verify ownership of the domain before making changes.
+	// Useful if you have multiple instances of dns-updater running for the same domain.
+	// Default: "dns-updater"
+	TxtOwnerId string `mapstructure:"txt_owner_id"`
+	// Prefix for the TXT record used to verify ownership. The full TXT record name will be constructed as "<txt_prefix>.<record_name>". This allows you to use a consistent naming convention for your ownership verification records.
+	// Default: "dns-updater-safemode"
+	TxtPrefix string `mapstructure:"txt_prefix"`
 }
 
 type Update struct {
@@ -55,7 +68,9 @@ func LoadConfig() (*Config, error) {
 	// Default config
 	viper.SetDefault("log.level", "info")
 	viper.SetDefault("log.type", "pretty")
-	viper.SetDefault("provider.safemode", true)
+	viper.SetDefault("provider.safemode.enabled", true)
+	viper.SetDefault("provider.safemode.txt_owner_id", "dns-updater")
+	viper.SetDefault("provider.safemode.txt_prefix", "dns-updater-safemode")
 
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {

@@ -15,10 +15,10 @@ type DNSService struct {
 	ip       ports.IPFetcher
 	cache    ports.IPCache
 	logger   *zerolog.Logger
-	safeMode bool
+	safeMode config.SafeMode
 }
 
-func NewDDNSService(dns ports.DNSProvider, ip ports.IPFetcher, cache ports.IPCache, logger *zerolog.Logger, safeMode bool) *DNSService {
+func NewDDNSService(dns ports.DNSProvider, ip ports.IPFetcher, cache ports.IPCache, logger *zerolog.Logger, safeMode config.SafeMode) *DNSService {
 	return &DNSService{
 		dns:      dns,
 		ip:       ip,
@@ -47,8 +47,8 @@ func (s *DNSService) Run(ctx context.Context, cfg []config.Update) error {
 
 	for _, updateCfg := range cfg {
 		for _, recordName := range updateCfg.Records {
-			if s.safeMode {
-				err := s.updateRecordSafe(ctx, updateCfg.Zone, updateCfg.Domain, recordName, updateCfg.Type, currentIP)
+			if s.safeMode.Enabled {
+				err := s.updateRecordSafe(ctx, updateCfg.Zone, updateCfg.Domain, recordName, updateCfg.Type, currentIP, s.safeMode.TxtPrefix, s.safeMode.TxtOwnerId)
 				if err != nil {
 					s.logger.Error().Err(err).Str("domain", updateCfg.Domain).Msg("failed to update domain")
 					continue
@@ -99,13 +99,14 @@ func (s *DNSService) updateRecord(ctx context.Context, zone, domain, recordName,
 	return s.dns.UpdateRecord(ctx, zone, domain, record.ID, ports.DNSRecord{Data: ip.String(), TTL: record.TTL})
 }
 
-func (s *DNSService) updateRecordSafe(ctx context.Context, zone, domain, recordName, recordType string, ip *netip.Addr) error {
+func (s *DNSService) updateRecordSafe(ctx context.Context, zone, domain, recordName, recordType string, ip *netip.Addr, safemodeTxtPrefix, safemodeOwnerId string) error {
 	records, err := s.dns.GetRecords(ctx, zone, domain)
 	if err != nil {
 		return err
 	}
 
-	safemodeRecordName := "dns-updater-safemode." + recordName
+	safemodeRecordName := fmt.Sprintf("%s%s", safemodeTxtPrefix, recordName)
+	safemodeRecordData := fmt.Sprintf("managed-by:dns-updater/%s", safemodeOwnerId)
 	safemodeRecord := findMatchingRecord(records, "TXT", safemodeRecordName)
 	record := findMatchingRecord(records, recordType, recordName)
 
@@ -115,13 +116,17 @@ func (s *DNSService) updateRecordSafe(ctx context.Context, zone, domain, recordN
 		return fmt.Errorf("record %s exists, but no safemode TXT record found. refusing to touch this record", fullRecordName)
 	}
 
+	if record != nil && safemodeRecord != nil && safemodeRecord.Data != safemodeRecordData {
+		return fmt.Errorf("record %s exists, but safemode TXT record data does not match expected value. refusing to touch this record", fullRecordName)
+	}
+
 	if record == nil {
 		s.logger.Debug().Msgf("Record %s not found in zone %s, creating new record", fullRecordName, zone)
 		if _, err := s.dns.CreateRecord(ctx, zone, domain, ports.DNSRecord{Name: recordName, Type: recordType, Data: ip.String(), TTL: 3600}); err != nil {
 			return err
 		}
 		s.logger.Debug().Msgf("Creating safemode TXT record for %s", fullRecordName)
-		if _, err := s.dns.CreateRecord(ctx, zone, domain, ports.DNSRecord{Name: safemodeRecordName, Type: "TXT", Data: "managed-by-dns-updater", TTL: 3600}); err != nil {
+		if _, err := s.dns.CreateRecord(ctx, zone, domain, ports.DNSRecord{Name: safemodeRecordName, Type: "TXT", Data: safemodeRecordData, TTL: 3600}); err != nil {
 			return err
 		}
 		return nil
