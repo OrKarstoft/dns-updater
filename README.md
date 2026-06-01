@@ -1,6 +1,6 @@
 # dns-updater
 
-A lightweight DNS record updater that supports multiple DNS providers (DigitalOcean and Google Cloud Platform) to automatically update DNS records with your current public IP address.
+A lightweight DNS record updater that supports multiple DNS providers (DigitalOcean, Simply.com, and Google Cloud Platform) to automatically update DNS records with your current public IP address.
 
 ## Documentation
 
@@ -11,6 +11,7 @@ A lightweight DNS record updater that supports multiple DNS providers (DigitalOc
 
 - Supports multiple DNS providers:
   - DigitalOcean DNS
+  - Simply.com DNS
   - Google Cloud DNS (GCP)
 - Automatic public IP address detection
 - Optional caching to avoid unnecessary DNS updates (file cache)
@@ -54,8 +55,11 @@ provider:
 
 Supported providers available:
 
-- `digitalocean`
-- `googlecloudplatform`
+| Provider               | `provider.name`       | State                                      |
+| ---------------------- | --------------------- | ------------------------------------------ |
+| DigitalOcean           | `digitalocean`        | ✅ Tested                                  |
+| Simply.com             | `simply`              | ✅ Tested                                  |
+| Google Cloud DNS (GCP) | `googlecloudplatform` | ⚠️ Untested (untested since release 3.0.0) |
 
 ### Update configuration
 
@@ -83,6 +87,24 @@ updates:
       - record1 # Subdomain => record1.example.com
 ```
 
+#### Simply.com example
+
+```yaml
+provider:
+  name: simply
+  config:
+    accountName: "YOUR_ACCOUNT_NAME"
+    apiKey: "YOUR_API_KEY"
+
+updates:
+  - domain: example.com
+    zone: example-com
+    type: "A"
+    records:
+      - record1
+      - record2
+```
+
 #### Google Cloud DNS example
 
 ```yaml
@@ -100,6 +122,25 @@ updates:
       - record1
       - record2
 ```
+
+### Safe Mode
+
+Safe mode is enabled by default and helps prevent accidental modification of records not managed by `dns-updater`. For each managed record, `dns-updater` creates/requires a companion TXT record named `<txt_prefix><record_name>` whose data is exactly `managed-by:dns-updater/<txt_owner_id>`.
+
+When enabled, `dns-updater` only creates or updates an A record if the matching safe mode TXT record exists and matches the expected ownership data. If a record exists without a matching safe mode TXT record, it refuses to touch it.
+
+```yaml
+provider:
+  name: digitalocean
+  safemode:
+    enabled: true
+    txtOwnerId: "dns-updater"
+    txtPrefix: "dns-updater-safemode"
+  config:
+    token: "<DO_TOKEN>"
+```
+
+Full details on safe mode and cleanup are available in the hosted docs: https://orkarstoft.github.io/dns-updater
 
 ### Cache configuration (optional)
 
@@ -153,6 +194,22 @@ Place `config.yaml` next to the binary (or run from the directory containing it)
 ```bash
 ./dnsupdater
 ```
+
+### Cleanup
+
+Use `--clean` to delete the managed records and their associated safe mode TXT records for every record in your config. Cleanup is guarded: it only deletes a record when the matching safe mode TXT record with the correct ownership data is present, so it won’t delete records it doesn’t own.
+
+```bash
+./dnsupdater --clean
+```
+
+Docker equivalent:
+
+```bash
+docker run -v /path/to/config.yaml:/config.yaml ghcr.io/orkarstoft/dns-updater:latest --clean
+```
+
+Full details on safe mode and cleanup are available in the hosted docs: https://orkarstoft.github.io/dns-updater
 
 ## Development
 

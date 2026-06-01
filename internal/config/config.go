@@ -28,10 +28,10 @@ type SafeMode struct {
 	// Identifier for the TXT record used to verify ownership of the domain before making changes.
 	// Useful if you have multiple instances of dns-updater running for the same domain.
 	// Default: "dns-updater"
-	TxtOwnerId string `mapstructure:"txt_owner_id"`
+	TxtOwnerId string `mapstructure:"txtOwnerId"`
 	// Prefix for the TXT record used to verify ownership. The full TXT record name will be constructed as "<txt_prefix>.<record_name>". This allows you to use a consistent naming convention for your ownership verification records.
 	// Default: "dns-updater-safemode"
-	TxtPrefix string `mapstructure:"txt_prefix"`
+	TxtPrefix string `mapstructure:"txtPrefix"`
 }
 
 type Update struct {
