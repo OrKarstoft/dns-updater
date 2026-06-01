@@ -13,15 +13,15 @@ func DecodeLogLevelHookFunc() mapstructure.DecodeHookFuncType {
 	return func(
 		f reflect.Type, // data type
 		t reflect.Type, // target data type
-		data interface{}, // raw data
-	) (interface{}, error) {
+		data any, // raw data
+	) (any, error) {
 		// Check if the data type matches the expected one
 		if f.Kind() != reflect.String {
 			return data, nil
 		}
 
 		// Check if the target type matches the expected one
-		if t != reflect.TypeOf(zerolog.Level(0)) {
+		if t != reflect.TypeFor[zerolog.Level]() {
 			return data, nil
 		}
 		// Format/decode/parse the data and return the new value
@@ -43,15 +43,15 @@ func DecodeLogTypeHookFunc() mapstructure.DecodeHookFuncType {
 	return func(
 		f reflect.Type, // data type
 		t reflect.Type, // target data type
-		data interface{}, // raw data
-	) (interface{}, error) {
+		data any, // raw data
+	) (any, error) {
 		// Check if the data type matches the expected one
 		if f.Kind() != reflect.String {
 			return data, nil
 		}
 
 		// Check if the target type matches the expected one
-		if t != reflect.TypeOf(LogType("")) {
+		if t != reflect.TypeFor[LogType]() {
 			return data, nil
 		}
 		// Format/decode/parse the data and return the new value
