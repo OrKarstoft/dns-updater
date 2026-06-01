@@ -1,6 +1,6 @@
 module github.com/orkarstoft/dns-updater
 
-go 1.25.6
+go 1.26.3
 
 require (
 	github.com/digitalocean/godo v1.184.0
