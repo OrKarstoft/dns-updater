@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/netip"
+	"strings"
 	"time"
 )
 
@@ -24,7 +25,9 @@ func (s *MyIPDK) Get(ctx context.Context) (*netip.Addr, error) {
 		return nil, fmt.Errorf("ip.Get returned an error at http.NewRequest: %w", err)
 	}
 
-	req.Header.Set("User-Agent", "curl/8.4.0")
+	// Fake curl, so we don't get an HTML page back.
+	req.Header.Set("User-Agent", "curl/8.20.0")
+	req.Header.Set("Content-Type", "text/plain")
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -38,7 +41,10 @@ func (s *MyIPDK) Get(ctx context.Context) (*netip.Addr, error) {
 		return nil, fmt.Errorf("ip.Get returned an error at io.ReadAll: %w", err)
 	}
 
-	ip, err := netip.ParseAddr(string(body))
+	// The response from myip.dk may contain trailing whitespace, so we trim it before parsing.
+	cleanBody := strings.TrimSpace(string(body))
+
+	ip, err := netip.ParseAddr(string(cleanBody))
 	if err != nil {
 		return nil, fmt.Errorf("ip.Get returned an error at netip.ParseAddr: %w", err)
 	}
