@@ -69,8 +69,8 @@ func LoadConfig() (*Config, error) {
 	viper.SetDefault("log.level", "info")
 	viper.SetDefault("log.type", "pretty")
 	viper.SetDefault("provider.safemode.enabled", true)
-	viper.SetDefault("provider.safemode.txt_owner_id", "dns-updater")
-	viper.SetDefault("provider.safemode.txt_prefix", "dns-updater-safemode")
+	viper.SetDefault("provider.safemode.txtOwnerId", "dns-updater")
+	viper.SetDefault("provider.safemode.txtPrefix", "dns-updater-safemode")
 
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {

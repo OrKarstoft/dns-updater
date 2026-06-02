@@ -17,15 +17,15 @@ Configure safe mode under `provider.safemode`:
 provider:
   safemode:
     enabled: true
-    txt_owner_id: dns-updater
-    txt_prefix: dns-updater-safemode
+    txtOwnerId: dns-updater
+    txtPrefix: dns-updater-safemode
 ```
 
 ## Fields
 
 - `enabled` (boolean, default: `true`): enables or disables safe mode.
-- `txt_owner_id` (string, default: `dns-updater`): ownership identifier written to the safemode TXT record.
-- `txt_prefix` (string, default: `dns-updater-safemode`): prefix used to build the safemode TXT record name.
+- `txtOwnerId` (string, default: `dns-updater`): ownership identifier written to the safemode TXT record.
+- `txtPrefix` (string, default: `dns-updater-safemode`): prefix used to build the safemode TXT record name.
 
 ## Safemode TXT records
 
@@ -60,8 +60,8 @@ provider:
     token: your-digitalocean-api-token
   safemode:
     enabled: true
-    txt_owner_id: dns-updater
-    txt_prefix: dns-updater-safemode
+    txtOwnerId: dns-updater
+    txtPrefix: dns-updater-safemode
 
 updates:
   - domain: example.com
