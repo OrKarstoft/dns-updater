@@ -16,8 +16,8 @@ type Config struct {
 }
 
 type Provider struct {
-	Name     string `mapstructure:"name"`
-	SafeMode SafeMode
+	Name     string   `mapstructure:"name"`
+	SafeMode SafeMode `mapstructure:"safemode"`
 	Config   map[string]any `mapstructure:"config"`
 }
 

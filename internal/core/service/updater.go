@@ -176,7 +176,11 @@ func (s *DNSService) cleanRecord(ctx context.Context, zone, domain, recordName, 
 		return err
 	}
 
-	safemodeRecordName := fmt.Sprintf("%s%s", s.safeMode.TxtPrefix, recordName)
+	safeSuffix := recordName
+	if safeSuffix == "@" {
+		safeSuffix = ""
+	}
+	safemodeRecordName := fmt.Sprintf("%s%s", s.safeMode.TxtPrefix, safeSuffix)
 	safemodeRecordData := fmt.Sprintf("managed-by:dns-updater/%s", s.safeMode.TxtOwnerId)
 	safemodeRecord := findMatchingRecord(records, "TXT", safemodeRecordName)
 	record := findMatchingRecord(records, recordType, recordName)

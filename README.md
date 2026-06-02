@@ -16,9 +16,8 @@ A lightweight DNS record updater that supports multiple DNS providers (DigitalOc
 - Automatic public IP address detection
 - Optional caching to avoid unnecessary DNS updates (file cache)
 - YAML-based configuration (`config.yaml`)
-- Docker support with a minimal, secure image
 - Configurable logging:
-  - `pretty`, `json`, or `file`
+  - `pretty` or `json` (stdout)
 
 ## Installation
 

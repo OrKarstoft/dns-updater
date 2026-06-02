@@ -15,6 +15,7 @@ To use the Simply provider, you need an API key and your account name. You can f
 ```yaml
 provider:
   name: simply
-  accountName: "YOUR_ACCOUNT_NAME"
-  apiKey: "YOUR_API_KEY"
+  config:
+    accountName: "YOUR_ACCOUNT_NAME"
+    apiKey: "YOUR_API_KEY"
 ```
