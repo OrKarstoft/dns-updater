@@ -33,8 +33,12 @@ func (s *MyIPDK) Get(ctx context.Context) (*netip.Addr, error) {
 	if err != nil {
 		return nil, fmt.Errorf("ip.Get returned an error at http.DefaultClient.Do: %w", err)
 	}
-
 	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("ip.Get unexpected status %s: %s", resp.Status, strings.TrimSpace(string(body)))
+	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
