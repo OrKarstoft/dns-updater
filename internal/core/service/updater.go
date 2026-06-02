@@ -105,7 +105,11 @@ func (s *DNSService) updateRecordSafe(ctx context.Context, zone, domain, recordN
 		return err
 	}
 
-	safemodeRecordName := fmt.Sprintf("%s%s", safemodeTxtPrefix, recordName)
+	safeSuffix := recordName
+	if safeSuffix == "@" {
+		safeSuffix = ""
+	}
+	safemodeRecordName := fmt.Sprintf("%s%s", safemodeTxtPrefix, safeSuffix)
 	safemodeRecordData := fmt.Sprintf("managed-by:dns-updater/%s", safemodeOwnerId)
 	safemodeRecord := findMatchingRecord(records, "TXT", safemodeRecordName)
 	record := findMatchingRecord(records, recordType, recordName)
@@ -115,21 +119,21 @@ func (s *DNSService) updateRecordSafe(ctx context.Context, zone, domain, recordN
 	if record != nil && safemodeRecord == nil {
 		return fmt.Errorf("record %s exists, but no safemode TXT record found. refusing to touch this record", fullRecordName)
 	}
-
 	if record != nil && safemodeRecord != nil && safemodeRecord.Data != safemodeRecordData {
 		return fmt.Errorf("record %s exists, but safemode TXT record data does not match expected value. refusing to touch this record", fullRecordName)
 	}
 
 	if record == nil {
-		s.logger.Debug().Msgf("Record %s not found in zone %s, creating new record", fullRecordName, zone)
-		if _, err := s.dns.CreateRecord(ctx, zone, domain, ports.DNSRecord{Name: recordName, Type: recordType, Data: ip.String(), TTL: 3600}); err != nil {
-			return err
+		if safemodeRecord == nil {
+			if _, err := s.dns.CreateRecord(ctx, zone, domain, ports.DNSRecord{Name: safemodeRecordName, Type: "TXT", Data: safemodeRecordData, TTL: 3600}); err != nil {
+				return err
+			}
+		} else if safemodeRecord.Data != safemodeRecordData {
+			return fmt.Errorf("safemode TXT record for %s does not match expected ownership, refusing to create record", fullRecordName)
 		}
-		s.logger.Debug().Msgf("Creating safemode TXT record for %s", fullRecordName)
-		if _, err := s.dns.CreateRecord(ctx, zone, domain, ports.DNSRecord{Name: safemodeRecordName, Type: "TXT", Data: safemodeRecordData, TTL: 3600}); err != nil {
-			return err
-		}
-		return nil
+		_, err := s.dns.CreateRecord(ctx, zone, domain, ports.DNSRecord{Name: recordName, Type: recordType, Data: ip.String(), TTL: 3600})
+		return err
+	}
 	}
 
 	s.logger.Debug().Msgf("Record %s found in zone %s, updating record", fullRecordName, zone)
