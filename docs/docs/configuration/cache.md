@@ -25,8 +25,7 @@ on the first run the cache file may not exist yet, which is expected.
 A no-op cache is used:
 
 GetLastIP always returns nil
-this effectively forces an update whenever the updater runsn
-
+this effectively forces an update whenever the updater runs
 ## `cache.filePath: "dns-updater.cache"`
 
 The path to the cache file. This can be an absolute or relative path. If the file does not exist, it will be created when the updater runs.

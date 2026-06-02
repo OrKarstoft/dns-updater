@@ -48,7 +48,7 @@ func NewFromConfig(cfg config.Provider) (ports.DNSProvider, error) {
 	apiKey := cfg.GetString("apiKey")
 
 	if accountName == "" || apiKey == "" {
-		log.Fatal().Msg("Simply account name and API key are required")
+		return nil, fmt.Errorf("simply accountName and apiKey are required")
 	}
 
 	return &Provider{

@@ -25,12 +25,17 @@ func NewFromConfig(cfg config.Provider) (ports.DNSProvider, error) {
 	ctx := context.Background()
 	client, err := googledns.NewService(ctx, option.WithCredentialsFile(cfg.GetString("credentialsFile")))
 	if err != nil {
-		log.Fatal().Msgf("Failed to create DNS client: %v", err)
+		return nil, fmt.Errorf("failed to create GCP DNS client: %w", err)
+	}
+
+	projectID := cfg.GetString("projectId")
+	if projectID == "" {
+		return nil, fmt.Errorf("gcp projectId is required")
 	}
 
 	return &Provider{
 		client:    client,
-		projectId: cfg.GetString("projectId"),
+		projectId: projectID,
 	}, nil
 }
 

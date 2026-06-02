@@ -24,7 +24,10 @@ func (c *FileCache) GetLastIP(ctx context.Context) (*netip.Addr, error) {
 	data, err := os.ReadFile(c.filepath)
 	if err != nil {
 		// This happens naturally on the first run before the file is created.
-		// Returning a zero-value netip.Addr is fine, as it won't equal a valid WAN IP.
+		// Treat it as an empty cache.
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
 		return nil, err
 	}
 

@@ -47,9 +47,8 @@ func main() {
 
 	updaterSvc := service.NewDDNSService(dnsAdapter, ipsvc, cacheSvc, &log.Logger, cfg.Provider.SafeMode)
 
-	// If arg is --clean then re run a delete funciton
+	// If arg is --clean then re run a delete function
 	if len(os.Args) > 1 && os.Args[1] == "--clean" {
-		log.Info().Msg("Running in clean mode, deleting all records")
 		runClean(ctx, updaterSvc, cfg)
 		return
 	}

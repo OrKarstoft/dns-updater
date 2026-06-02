@@ -24,7 +24,7 @@ type Provider struct {
 func NewFromConfig(cfg config.Provider) (ports.DNSProvider, error) {
 	token := cfg.GetString("token")
 	if token == "" {
-		log.Fatal().Msg("DigitalOcean API token is required")
+		return nil, fmt.Errorf("digitalocean token is required")
 	}
 
 	client := godo.NewFromToken(token)
