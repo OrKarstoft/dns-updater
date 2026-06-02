@@ -2,72 +2,103 @@ package main
 
 import (
 	"context"
-	"errors"
-	"log"
 	"os"
 	"os/signal"
 
-	"github.com/orkarstoft/dns-updater/application"
-	"github.com/orkarstoft/dns-updater/config"
-	"github.com/orkarstoft/dns-updater/dns"
-	"github.com/orkarstoft/dns-updater/dns/providers/digitalocean"
-	"github.com/orkarstoft/dns-updater/dns/providers/gcp"
-	"github.com/orkarstoft/dns-updater/dns/tracing"
-	"github.com/orkarstoft/dns-updater/logger"
-	"github.com/rs/zerolog"
+	"github.com/go-co-op/gocron/v2"
+	"github.com/orkarstoft/dns-updater/internal/adapters/cache"
+	_ "github.com/orkarstoft/dns-updater/internal/adapters/dns/digitalocean"
+	_ "github.com/orkarstoft/dns-updater/internal/adapters/dns/gcp"
+	_ "github.com/orkarstoft/dns-updater/internal/adapters/dns/simply"
+	"github.com/orkarstoft/dns-updater/internal/adapters/ip/myipdk"
+	"github.com/orkarstoft/dns-updater/internal/config"
+	"github.com/orkarstoft/dns-updater/internal/core/ports"
+	"github.com/orkarstoft/dns-updater/internal/core/service"
+	"github.com/orkarstoft/dns-updater/internal/logger"
+	"github.com/orkarstoft/dns-updater/internal/registry"
+	"github.com/rs/zerolog/log"
 )
 
 func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
 
-	config.LoadConfig()
-
-	loggerSvc, err := logger.New(config.Conf.Log.Type, config.Conf.Log.Level)
+	cfg, err := config.LoadConfig()
 	if err != nil {
-		// You can unwrap the error if needed
-		var logErr *logger.LoggerError
-		if errors.As(err, &logErr) {
-			log.Fatal("Logger operation '%s' failed: %v\n", logErr.Operation, logErr.Err)
-		}
-		// Handle error appropriately
-		log.Fatal(err)
+		log.Fatal().Err(err).Msg("Failed to load configuration")
 	}
 
-	dnsProvider := getDNSProvider(loggerSvc)
+	logger.New(cfg.Log)
 
-	options := application.Options{
-		Ctx:            ctx,
-		ProviderClient: dnsProvider,
-		Logger:         loggerSvc,
+	dnsAdapter, err := registry.GetDNSProvider(cfg.Provider)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to initialize DNS provider")
 	}
 
-	if config.Conf.Tracing.GetBool("enabled") {
-		tracingService, shutdownTracer := tracing.NewService(ctx, dnsProvider)
-		defer shutdownTracer(ctx)
+	ipsvc := myipdk.New()
 
-		traceCtx, span := tracingService.Tracer().Start(ctx, "root")
-		defer span.End()
-
-		options.Ctx = traceCtx
-		options.Tracer = tracingService.Tracer()
-		options.ProviderClient = tracingService
+	// Initialize the cache.
+	var cacheSvc ports.IPCache
+	if cfg.Cache.Enabled {
+		cacheSvc = cache.NewFileCache(cfg.Cache.FilePath)
+	} else {
+		cacheSvc = cache.NewNoOpCache()
 	}
 
-	service := application.New(options)
+	updaterSvc := service.NewDDNSService(dnsAdapter, ipsvc, cacheSvc, &log.Logger, cfg.Provider.SafeMode)
 
-	service.Run()
+	// If arg is --clean then re run a delete function
+	if len(os.Args) > 1 && os.Args[1] == "--clean" {
+		runClean(ctx, updaterSvc, cfg)
+		return
+	}
+
+	if cfg.Schedule != "" {
+		runScheduled(ctx, updaterSvc, cfg)
+	} else {
+		runOnce(ctx, updaterSvc, cfg)
+	}
 }
 
-func getDNSProvider(logger *zerolog.Logger) dns.DNSImpl {
-	var dnsProvider dns.DNSImpl
-	switch config.Conf.Provider.GetString("name") {
-	case "googlecloudplatform":
-		dnsProvider = gcp.NewService(logger, config.Conf.Provider.GetString("projectId"), config.Conf.Provider.GetString("credentialsFile"))
-	case "digitalocean":
-		dnsProvider = digitalocean.NewService(logger, config.Conf.Provider.GetString("token"))
-	default:
-		logger.Fatal().Msg("No valid DNS provider specified in config file")
+func runOnce(ctx context.Context, updaterSvc *service.DNSService, cfg *config.Config) {
+	if err := updaterSvc.Run(ctx, cfg.Updates); err != nil {
+		log.Fatal().Err(err).Msg("Failed to run DNS updater service")
 	}
-	return dnsProvider
+	log.Info().Msg("DNS update complete")
+}
+
+func runScheduled(ctx context.Context, updaterSvc *service.DNSService, cfg *config.Config) {
+	s, err := gocron.NewScheduler()
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to create scheduler")
+	}
+	_, err = s.NewJob(
+		gocron.CronJob(cfg.Schedule, false),
+		gocron.NewTask(func() {
+			if err := updaterSvc.Run(ctx, cfg.Updates); err != nil {
+				log.Error().Err(err).Msg("Failed to run DNS updater service")
+			}
+		}),
+	)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to create job")
+	}
+
+	s.Start()
+	log.Info().Msgf("Scheduler started with schedule: %s", cfg.Schedule)
+
+	// Block until the context is cancelled.
+	<-ctx.Done()
+
+	log.Info().Msg("Shutting down scheduler")
+	if err := s.Shutdown(); err != nil {
+		log.Error().Err(err).Msg("Failed to shutdown scheduler")
+	}
+}
+
+func runClean(ctx context.Context, updaterSvc *service.DNSService, cfg *config.Config) {
+	if err := updaterSvc.Clean(ctx, cfg.Updates); err != nil {
+		log.Fatal().Err(err).Msg("Failed to run DNS updater service in clean mode")
+	}
+	log.Info().Msg("DNS clean complete")
 }
