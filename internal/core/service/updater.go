@@ -134,7 +134,6 @@ func (s *DNSService) updateRecordSafe(ctx context.Context, zone, domain, recordN
 		_, err := s.dns.CreateRecord(ctx, zone, domain, ports.DNSRecord{Name: recordName, Type: recordType, Data: ip.String(), TTL: 3600})
 		return err
 	}
-	}
 
 	s.logger.Debug().Msgf("Record %s found in zone %s, updating record", fullRecordName, zone)
 	if record.Data == ip.String() {
