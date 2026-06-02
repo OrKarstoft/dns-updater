@@ -12,7 +12,7 @@ Use cleanup to delete managed DNS records and their safemode TXT records for eve
 Run the binary with the `--clean` flag:
 
 ```bash
-./dns-updater --clean
+./dnsupdater --clean
 ```
 
 With Docker:
