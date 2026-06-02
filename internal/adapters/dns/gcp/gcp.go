@@ -178,9 +178,7 @@ func expandRecordName(name, domain string) string {
 	}
 
 	switch trimmedName {
-	case "", "@":
-		return trimmedDomain + "."
-	case trimmedDomain:
+	case "", "@", trimmedDomain:
 		return trimmedDomain + "."
 	}
 
