@@ -28,10 +28,6 @@ func New(cfg config.Log) {
 		}
 		logger = zerolog.New(consoleWriter).With().Timestamp().Logger()
 		logger.Info().Msg("using pretty console logger")
-	case config.LOGTYPE_FILE:
-		// Example file logger (would normally open a file handle)
-		// file, _ := os.OpenFile("ddns.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-		logger = zerolog.New(os.Stdout).With().Timestamp().Logger()
 	case config.LOGTYPE_JSON:
 		fallthrough
 	default:
