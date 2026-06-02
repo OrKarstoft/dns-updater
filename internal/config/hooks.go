@@ -5,38 +5,7 @@ import (
 	"reflect"
 
 	"github.com/go-viper/mapstructure/v2"
-	"github.com/rs/zerolog"
 )
-
-func DecodeLogLevelHookFunc() mapstructure.DecodeHookFuncType {
-	// Wrapped in a function call to add optional input parameters (eg. separator)
-	return func(
-		f reflect.Type, // data type
-		t reflect.Type, // target data type
-		data any, // raw data
-	) (any, error) {
-		// Check if the data type matches the expected one
-		if f.Kind() != reflect.String {
-			return data, nil
-		}
-
-		// Check if the target type matches the expected one
-		if t != reflect.TypeFor[zerolog.Level]() {
-			return data, nil
-		}
-		// Format/decode/parse the data and return the new value
-		switch data.(string) {
-		case "debug":
-			return zerolog.DebugLevel, nil
-		case "info":
-			return zerolog.InfoLevel, nil
-		case "warn":
-			return zerolog.WarnLevel, nil
-		default:
-			return nil, fmt.Errorf("unknown log level: %s", data)
-		}
-	}
-}
 
 func DecodeLogTypeHookFunc() mapstructure.DecodeHookFuncType {
 	// Wrapped in a function call to add optional input parameters (eg. separator)
@@ -58,8 +27,6 @@ func DecodeLogTypeHookFunc() mapstructure.DecodeHookFuncType {
 		switch data.(string) {
 		case "json":
 			return LOGTYPE_JSON, nil
-		case "file":
-			return LOGTYPE_FILE, nil
 		case "pretty":
 			return LOGTYPE_PRETTY, nil
 		default:

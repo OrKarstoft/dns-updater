@@ -16,8 +16,8 @@ type Config struct {
 }
 
 type Provider struct {
-	Name     string   `mapstructure:"name"`
-	SafeMode SafeMode `mapstructure:"safemode"`
+	Name     string         `mapstructure:"name"`
+	SafeMode SafeMode       `mapstructure:"safemode"`
 	Config   map[string]any `mapstructure:"config"`
 }
 
@@ -46,7 +46,6 @@ type LogType string
 const (
 	LOGTYPE_JSON   LogType = "json"
 	LOGTYPE_PRETTY LogType = "pretty"
-	LOGTYPE_FILE   LogType = "file"
 )
 
 type Log struct {
@@ -82,8 +81,7 @@ func LoadConfig() (*Config, error) {
 	// Note: Assuming DecodeLogLevelHookFunc and DecodeLogTypeHookFunc are defined in this package
 	err := viper.Unmarshal(&conf, viper.DecodeHook(
 		mapstructure.ComposeDecodeHookFunc(
-		// DecodeLogLevelHookFunc(),
-		// DecodeLogTypeHookFunc(),
+			DecodeLogTypeHookFunc(),
 		),
 	))
 	if err != nil {
