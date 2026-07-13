@@ -3,7 +3,7 @@ module github.com/orkarstoft/dns-updater
 go 1.26.3
 
 require (
-	github.com/digitalocean/godo v1.197.0
+	github.com/digitalocean/godo v1.198.0
 	github.com/go-co-op/gocron/v2 v2.21.2
 	github.com/go-viper/mapstructure/v2 v2.5.0
 	github.com/rs/zerolog v1.35.1
