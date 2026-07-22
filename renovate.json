@@ -1,0 +1,22 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "packageRules": [
+    {
+      "description": "Force go.mod 'go' directive to bump when new versions come out",
+      "matchManagers": ["gomod"],
+      "matchDepTypes": ["golang"],
+      "rangeStrategy": "bump"
+    },
+    {
+      "description": "Group Go updates in Dockerfile and go.mod into a single PR",
+      "groupName": "Go Toolchain and Base Image",
+      "matchPackageNames": [
+        "golang",
+        "docker.io/library/golang",
+        "golang-alpine"
+      ],
+      "matchManagers": ["dockerfile", "gomod"]
+    }
+  ]
+}
