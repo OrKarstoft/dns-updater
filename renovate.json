@@ -17,6 +17,17 @@
         "golang-alpine"
       ],
       "matchManagers": ["dockerfile", "gomod"]
+    },
+    {
+      "description": "Group React updates with Docusaurus to prevent peer dep breaks",
+      "matchPackageNames": [
+        "react",
+        "react-dom",
+        "@types/react",
+        "@types/react-dom"
+      ],
+      "groupName": "docusaurus",
+      "matchPackagePatterns": ["^@docusaurus/"]
     }
   ]
 }
