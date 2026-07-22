@@ -40,6 +40,10 @@ const config: Config = {
     [
       "classic",
       {
+        gtag: {
+          // Environment variable: GTAG_ID
+          trackingID: process.env.GTAG_ID || "G-XXXXXXXXXX",
+        },
         docs: {
           sidebarPath: "./sidebars.ts",
           routeBasePath: "/",
