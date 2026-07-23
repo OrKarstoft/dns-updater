@@ -11,6 +11,12 @@ jobs:
   build:
     name: Build Docusaurus
     runs-on: ubuntu-latest
+    # Deploy to the github-pages environment
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    env:
+      GTAG_ID: ${{ vars.GTAG_ID }}
     defaults:
       run:
         working-directory: docs
