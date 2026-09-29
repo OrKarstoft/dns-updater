@@ -27,13 +27,26 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 24
-          cache: npm
-          cache-dependency-path: docs/package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: |
+          printf '{"name":"docs","version":"0.0.0","private":true}\n' > package.json
+          npm install --no-save --package-lock=false \
+            @docusaurus/core@3.10.2 \
+            @docusaurus/faster@3.10.2 \
+            @docusaurus/plugin-google-gtag@3.10.2 \
+            @docusaurus/preset-classic@3.10.2 \
+            @docusaurus/module-type-aliases@3.10.2 \
+            @docusaurus/tsconfig@3.10.2 \
+            @docusaurus/types@3.10.2 \
+            @mdx-js/react@3.1.1 \
+            clsx@2.1.1 \
+            prism-react-renderer@2.4.1 \
+            react@19.2.4 \
+            react-dom@19.2.4 \
+            typescript@7.0.2
       - name: Build website
-        run: npm run build
+        run: ./node_modules/.bin/docusaurus build
 
       - name: Upload Build Artifact
         uses: actions/upload-pages-artifact@v5
