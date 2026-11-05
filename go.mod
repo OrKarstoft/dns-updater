@@ -4,7 +4,7 @@ go 1.27.1
 
 require (
 	github.com/digitalocean/godo v1.234.0
-	github.com/go-co-op/gocron/v2 v2.22.0
+	github.com/go-co-op/gocron/v2 v2.23.0
 	github.com/go-viper/mapstructure/v2 v2.5.0
 	github.com/rs/zerolog v1.35.1
 	github.com/spf13/viper v1.21.0
